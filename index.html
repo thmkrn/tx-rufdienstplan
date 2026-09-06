@@ -19,6 +19,8 @@
 
 
 
+
+
       @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap');
 
       :root {
@@ -265,6 +267,7 @@
       .cell-daynum { font-size: 12px; font-weight: 600; color: var(--ink); }
       .today-tag { font-size: 9px; font-weight: 700; letter-spacing: 0.03em; color: var(--heart); }
 
+      .cell-top-buttons { display: flex; align-items: center; gap: 2px; }
       .lead-btn {
         background: transparent;
         border: none;
@@ -274,6 +277,27 @@
         display: flex;
       }
       .lead-btn:hover { color: var(--amber); }
+      .note-btn {
+        background: transparent;
+        border: 1px solid var(--line);
+        border-radius: 50%;
+        width: 14px;
+        height: 14px;
+        line-height: 1;
+        color: var(--muted);
+        cursor: pointer;
+        padding: 0;
+        font-size: 10px;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .note-btn:hover { color: var(--heart); border-color: var(--heart); }
+      .cell-notewarn { border-style: dashed; border-color: var(--heart); border-width: 1px; }
+      .note-tag { font-size: 9px; color: var(--heart); font-weight: 600; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+      .admin-note-dot { font-size: 8px; }
+      .today-notewarn { font-size: 13px; color: var(--heart); font-weight: 600; margin-top: 4px; }
 
       .status-pill { font-size: 10px; font-weight: 600; }
       .status-verfuegbar .status-pill { color: var(--green); }
@@ -454,10 +478,15 @@
       .einsatz-status-consumed { background: var(--green-bg); color: var(--green); }
       .einsatz-item-meta { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); flex-wrap: wrap; }
       .einsatz-linked { white-space: nowrap; }
+      .einsatz-linked-empty { color: var(--heart); font-weight: 700; }
       .einsatz-unlinked { font-style: italic; opacity: 0.7; }
       .einsatz-qty { font-weight: 600; }
+      .einsatz-qty-input { width: 60px; }
       .einsatz-variant-select, .einsatz-link-select { font-size: 12px; padding: 4px 6px; }
       .einsatz-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+
+      .stats-date-input { width: 140px; }
+      .stats-total-cell { font-weight: 700; }
 
       @media (max-width: 560px) {
         .cell { min-height: 54px; padding: 4px; }
@@ -537,11 +566,15 @@
 
 
 
+
+
 </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel" data-presets="react">
+
+
 
 
 
@@ -759,6 +792,7 @@ function defaultData() {
     backupAssignments: {},
     materials: MATERIALS_SEED.map((m) => ({ ...m, batches: [] })),
     checklists: JSON.parse(JSON.stringify(CHECKLISTS_SEED)),
+    statsBaseline: {},
   };
 }
 
@@ -773,11 +807,11 @@ function daysUntil(dateStr) {
 }
 
 function materialTotalQty(mat) {
-  return mat.batches.reduce((sum, b) => sum + b.qty, 0);
+  return (mat.batches || []).reduce((sum, b) => sum + (b.qty || 0), 0);
 }
 
 function materialSoonestExpiry(mat) {
-  const withExpiry = mat.batches.filter((b) => b.expiry).sort((a, b) => a.expiry.localeCompare(b.expiry));
+  const withExpiry = (mat.batches || []).filter((b) => b.expiry).sort((a, b) => a.expiry.localeCompare(b.expiry));
   return withExpiry.length ? withExpiry[0].expiry : null;
 }
 
@@ -823,7 +857,7 @@ function availablePeopleForDay(data, dateStr) {
   data.members.forEach((member) => {
     const e = (data.availability[member.id] || {})[dateStr];
     if (e && (e.status === "verfuegbar" || e.status === "vielleicht")) {
-      list.push({ member, status: e.status, hasLeadTime: !!e.leadTimeHours });
+      list.push({ member, status: e.status, hasLeadTime: !!e.leadTimeHours, note: e.note || null });
     }
   });
   // Bereits zugewiesene Personen immer mit anzeigen, auch falls die Verfügbarkeit
@@ -834,7 +868,7 @@ function availablePeopleForDay(data, dateStr) {
   [primaryId, backupId].forEach((pid) => {
     if (pid && !list.find((x) => x.member.id === pid)) {
       const m = data.members.find((x) => x.id === pid);
-      if (m) list.push({ member: m, status: null, hasLeadTime: false });
+      if (m) list.push({ member: m, status: null, hasLeadTime: false, note: null });
     }
   });
   return list;
@@ -943,20 +977,24 @@ function buildMaterialReportPdf(materials) {
   y += 5;
 
   materials.forEach((m) => {
-    const status = materialStatus(m);
-    if (y > 280) { doc.addPage(); y = 18; }
-    doc.setFontSize(8.5);
-    doc.text(asciiSafe(m.name).slice(0, 40), colX[0], y);
-    doc.text(asciiSafe(USAGE_LABELS[m.usage] || "-"), colX[1], y);
-    doc.text(String(status.total), colX[2], y);
-    doc.text(String(m.minQty || 0), colX[3], y);
-    doc.text(status.soonest || "-", colX[4], y);
-    let statusLabel = "OK";
-    if (status.understock) statusLabel = "Nachbestellen";
-    else if (status.expiryState === "expired") statusLabel = "Abgelaufen";
-    else if (status.expiryState === "soon") statusLabel = "Laeuft bald ab";
-    doc.text(statusLabel, colX[5], y);
-    y += 6;
+    try {
+      const status = materialStatus(m);
+      if (y > 280) { doc.addPage(); y = 18; }
+      doc.setFontSize(8.5);
+      doc.text(asciiSafe(m.name || "-").slice(0, 40), colX[0], y);
+      doc.text(asciiSafe(USAGE_LABELS[m.usage] || "-"), colX[1], y);
+      doc.text(String(status.total), colX[2], y);
+      doc.text(String(m.minQty || 0), colX[3], y);
+      doc.text(status.soonest || "-", colX[4], y);
+      let statusLabel = "OK";
+      if (status.understock) statusLabel = "Nachbestellen";
+      else if (status.expiryState === "expired") statusLabel = "Abgelaufen";
+      else if (status.expiryState === "soon") statusLabel = "Laeuft bald ab";
+      doc.text(statusLabel, colX[5], y);
+      y += 6;
+    } catch (rowErr) {
+      console.error("PDF-Zeile uebersprungen wegen Fehler", m, rowErr);
+    }
   });
 
   return doc.output("blob");
@@ -1052,6 +1090,7 @@ function App() {
     }
     if (!remote.backupAssignments) { remote.backupAssignments = {}; changed = true; }
     if (!remote.checklists) { remote.checklists = JSON.parse(JSON.stringify(CHECKLISTS_SEED)); changed = true; }
+    if (!remote.statsBaseline) { remote.statsBaseline = {}; changed = true; }
     return { data: remote, changed };
   }
 
@@ -1190,7 +1229,21 @@ function App() {
       const entry = { ...(personAvail[dateStr] || {}) };
       if (hours === null) delete entry.leadTimeHours;
       else entry.leadTimeHours = hours;
-      if (!entry.status && !entry.leadTimeHours) delete personAvail[dateStr];
+      if (!entry.status && !entry.leadTimeHours && !entry.note) delete personAvail[dateStr];
+      else personAvail[dateStr] = entry;
+      availability[personId] = personAvail;
+      return { ...prev, availability };
+    });
+  }
+
+  function setNote(personId, dateStr, note) {
+    commit((prev) => {
+      const availability = { ...prev.availability };
+      const personAvail = { ...(availability[personId] || {}) };
+      const entry = { ...(personAvail[dateStr] || {}) };
+      if (!note) delete entry.note;
+      else entry.note = note;
+      if (!entry.status && !entry.leadTimeHours && !entry.note) delete personAvail[dateStr];
       else personAvail[dateStr] = entry;
       availability[personId] = personAvail;
       return { ...prev, availability };
@@ -1216,6 +1269,14 @@ function App() {
       ...prev,
       members: prev.members.map((m) => (m.id === personId ? { ...m, color } : m)),
     }));
+  }
+
+  function updateStatsBaseline(personId, patch) {
+    commit((prev) => {
+      const statsBaseline = { ...(prev.statsBaseline || {}) };
+      statsBaseline[personId] = { ...(statsBaseline[personId] || { count: 0, asOf: "" }), ...patch };
+      return { ...prev, statsBaseline };
+    });
   }
 
   function handleAvailClick(personId, dateStr) {
@@ -1268,6 +1329,15 @@ function App() {
     const num = Number(trimmed.replace(",", "."));
     if (isNaN(num) || num <= 0) { setLeadTime(personId, dateStr, null); return; }
     setLeadTime(personId, dateStr, num);
+  }
+
+  function handleNoteClick(personId, dateStr) {
+    if (!personId) return;
+    const cur = (data.availability[personId] || {})[dateStr];
+    const curVal = cur && cur.note ? cur.note : "";
+    const input = window.prompt(`Wichtiger Hinweis für ${dateStr}.\nLeer lassen zum Entfernen.`, curVal);
+    if (input === null) return;
+    setNote(personId, dateStr, input.trim());
   }
 
   function setDayRole(dateStr, personId, role) {
@@ -1430,10 +1500,10 @@ function App() {
   function setEinsatzOrgan(organ) {
     commitEinsatz((prev) => ({ ...prev, organ }));
   }
-  function setItemVariant(itemId, materialId) {
+  function setItemQty(itemId, qty) {
     commitEinsatz((prev) => {
       const itemStatus = { ...prev.itemStatus };
-      itemStatus[itemId] = { ...(itemStatus[itemId] || {}), variant: materialId };
+      itemStatus[itemId] = { ...(itemStatus[itemId] || {}), qty };
       return { ...prev, itemStatus };
     });
   }
@@ -1453,7 +1523,7 @@ function App() {
     });
   }
   function resetEinsatzChecklist() {
-    if (!window.confirm("Einsatz-Checkliste wirklich zurücksetzen? Der Materialbestand bleibt unverändert.")) return;
+    if (!window.confirm("Einsatz wirklich zurücksetzen? Der Materialbestand bleibt unverändert.")) return;
     commitEinsatz(defaultEinsatz());
   }
 
@@ -1557,6 +1627,7 @@ function App() {
     const previewPrimary = previewPrimaryId && data ? data.members.find((m) => m.id === previewPrimaryId) : null;
     const previewBackup = previewBackupId && data ? data.members.find((m) => m.id === previewBackupId) : null;
     const previewLeadTime = previewPrimaryId && data ? ((data.availability[previewPrimaryId] || {})[ds] || {}).leadTimeHours : null;
+    const previewNote = previewPrimaryId && data ? ((data.availability[previewPrimaryId] || {})[ds] || {}).note : null;
 
     return (
       <div className="tx-app">
@@ -1576,6 +1647,9 @@ function App() {
                 )}
                 {previewLeadTime ? (
                   <div className="login-oncall-lead">⏱ Braucht {previewLeadTime} Std. Vorlaufzeit</div>
+                ) : null}
+                {previewNote ? (
+                  <div className="login-oncall-lead">❗ {previewNote}</div>
                 ) : null}
                 {previewBackup && (
                   <div className="login-oncall-backup">Backup: {previewBackup.name}</div>
@@ -1663,6 +1737,7 @@ function App() {
             handleAvailClick={handleAvailClick}
             handleAvailDoubleClick={handleAvailDoubleClick}
             handleLeadTimeClick={handleLeadTimeClick}
+            handleNoteClick={handleNoteClick}
             exportPersonIcs={exportPersonIcs}
           />
         )}
@@ -1697,6 +1772,7 @@ function App() {
             setStatYear={setStatYear}
             availableYears={availableYears}
             stats={stats}
+            updateStatsBaseline={updateStatsBaseline}
           />
         )}
         {tab === "material" && (
@@ -1721,13 +1797,10 @@ function App() {
             data={data}
             einsatz={einsatz}
             setEinsatzOrgan={setEinsatzOrgan}
-            setItemVariant={setItemVariant}
+            setItemQty={setItemQty}
             markItemsPacked={markItemsPacked}
             markItemsConsumed={markItemsConsumed}
             resetEinsatzChecklist={resetEinsatzChecklist}
-            updateChecklistItem={updateChecklistItem}
-            addChecklistItem={addChecklistItem}
-            removeChecklistItem={removeChecklistItem}
           />
         )}
       </main>
@@ -1737,7 +1810,7 @@ function App() {
 
 /* ---------- Tab: Verfügbarkeit ---------- */
 
-function VerfuegbarTab({ data, currentPerson, setCurrentPerson, updatePhone, viewYear, viewMonth, weeks, goPrevMonth, goNextMonth, handleAvailClick, handleAvailDoubleClick, handleLeadTimeClick, exportPersonIcs }) {
+function VerfuegbarTab({ data, currentPerson, setCurrentPerson, updatePhone, viewYear, viewMonth, weeks, goPrevMonth, goNextMonth, handleAvailClick, handleAvailDoubleClick, handleLeadTimeClick, handleNoteClick, exportPersonIcs }) {
   const person = data.members.find((m) => m.id === currentPerson);
   const today = todayStr();
 
@@ -1775,7 +1848,7 @@ function VerfuegbarTab({ data, currentPerson, setCurrentPerson, updatePhone, vie
       ) : (
         <>
           <p className="hint-text">
-            Klick auf <strong>Montag</strong> markiert die ganze Woche als verfügbar. Klick auf einen einzelnen Tag wechselt zwischen <strong>Verfügbar</strong> und <strong>Vielleicht</strong>. Doppelklick löscht den Eintrag. Über das Uhr-Symbol kannst du eine nötige Vorlaufzeit hinterlegen.
+            Klick auf <strong>Montag</strong> markiert die ganze Woche als verfügbar. Klick auf einen einzelnen Tag wechselt zwischen <strong>Verfügbar</strong> und <strong>Vielleicht</strong>, nochmaliger Klick löscht den Eintrag. Doppelklick löscht sofort. Über das Uhr-Symbol kannst du eine nötige Vorlaufzeit hinterlegen, über das „!"-Symbol einen wichtigen Hinweis.
           </p>
           <MonthNav year={viewYear} month={viewMonth} onPrev={goPrevMonth} onNext={goNextMonth} />
           <CalendarShell
@@ -1785,29 +1858,40 @@ function VerfuegbarTab({ data, currentPerson, setCurrentPerson, updatePhone, vie
               const entry = (data.availability[currentPerson] || {})[dateStr];
               const status = entry ? entry.status : null;
               const leadTime = entry ? entry.leadTimeHours : null;
+              const note = entry ? entry.note : null;
               const isToday = dateStr === today;
               const isScheduled = data.assignments[dateStr] === currentPerson;
               const isScheduledBackup = (data.backupAssignments || {})[dateStr] === currentPerson;
               return (
                 <div
-                  className={`cell ${inMonth ? "" : "cell-out"} ${isToday ? "cell-today" : ""} status-${status || "none"} ${leadTime ? "cell-leadwarn" : ""} ${isScheduled ? "cell-scheduled" : ""}`}
+                  className={`cell ${inMonth ? "" : "cell-out"} ${isToday ? "cell-today" : ""} status-${status || "none"} ${leadTime ? "cell-leadwarn" : ""} ${note ? "cell-notewarn" : ""} ${isScheduled ? "cell-scheduled" : ""}`}
                   onClick={() => handleAvailClick(currentPerson, dateStr)}
                   onDoubleClick={() => handleAvailDoubleClick(currentPerson, dateStr)}
                 >
                   <div className="cell-top">
                     <span className="cell-daynum">{parseDstr(dateStr).d}</span>
-                    <button
-                      className="lead-btn"
-                      onClick={(e) => { e.stopPropagation(); handleLeadTimeClick(currentPerson, dateStr); }}
-                      title="Vorlaufzeit angeben"
-                    >
-                      <Clock size={12} />
-                    </button>
+                    <span className="cell-top-buttons">
+                      <button
+                        className="lead-btn"
+                        onClick={(e) => { e.stopPropagation(); handleLeadTimeClick(currentPerson, dateStr); }}
+                        title="Vorlaufzeit angeben"
+                      >
+                        <Clock size={12} />
+                      </button>
+                      <button
+                        className="note-btn"
+                        onClick={(e) => { e.stopPropagation(); handleNoteClick(currentPerson, dateStr); }}
+                        title="Wichtigen Hinweis angeben"
+                      >
+                        !
+                      </button>
+                    </span>
                   </div>
                   {status && <span className="status-pill">{status === "verfuegbar" ? "Verfügbar" : "Vielleicht"}</span>}
                   {isScheduled && <span className="scheduled-tag">📌 Rufdienst eingeplant</span>}
                   {isScheduledBackup && <span className="scheduled-tag scheduled-tag-backup">📌 Backup eingeplant</span>}
                   {leadTime ? <span className="leadtime-tag">⏱ {leadTime} Std. Vorlauf</span> : null}
+                  {note ? <span className="note-tag" title={note}>❗ {note}</span> : null}
                 </div>
               );
             }}
@@ -1882,7 +1966,7 @@ function AdminTab({ data, viewYear, viewMonth, weeks, goPrevMonth, goNextMonth, 
               </div>
               <div className="admin-chip-list">
                 {available.length === 0 && <span className="admin-no-avail">–</span>}
-                {available.map(({ member, status, hasLeadTime }) => {
+                {available.map(({ member, status, hasLeadTime, note }) => {
                   const isPrimary = primaryId === member.id;
                   const isBackup = backupId === member.id;
                   return (
@@ -1893,12 +1977,13 @@ function AdminTab({ data, viewYear, viewMonth, weeks, goPrevMonth, goNextMonth, 
                       style={isPrimary || isBackup ? { borderColor: colorFor(data.members, member.id) } : {}}
                       onClick={(e) => { e.stopPropagation(); setDayRole(dateStr, member.id, "primary"); }}
                       onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setDayRole(dateStr, member.id, "backup"); }}
-                      title={`${member.name}${isMon ? " – wirkt auf die ganze Woche" : ""}`}
+                      title={`${member.name}${isMon ? " – wirkt auf die ganze Woche" : ""}${note ? " – Hinweis: " + note : ""}`}
                     >
                       {shortMemberName(data.members, member)}
                       {isPrimary && <span className="admin-role-dot admin-role-dot-p">P</span>}
                       {isBackup && <span className="admin-role-dot admin-role-dot-b">B</span>}
                       {hasLeadTime && <span className="admin-lead-dot">⏱</span>}
+                      {note && <span className="admin-note-dot">❗</span>}
                     </button>
                   );
                 })}
@@ -1953,6 +2038,7 @@ function UebersichtTab({ data, viewYear, viewMonth, weeks, goPrevMonth, goNextMo
   const todaysBackupMember = todaysBackupId ? data.members.find((m) => m.id === todaysBackupId) : null;
   const todaysAvail = todaysAssignedId ? (data.availability[todaysAssignedId] || {})[today] : null;
   const todaysLeadTime = todaysAvail ? todaysAvail.leadTimeHours : null;
+  const todaysNote = todaysAvail ? todaysAvail.note : null;
   const telHref = todaysMember && todaysMember.phone ? `tel:${todaysMember.phone.replace(/[^0-9+]/g, "")}` : null;
   const backupTelHref = todaysBackupMember && todaysBackupMember.phone ? `tel:${todaysBackupMember.phone.replace(/[^0-9+]/g, "")}` : null;
   const weekdayLabel = WEEKDAY_FULL[dowMon0(today)];
@@ -1968,6 +2054,9 @@ function UebersichtTab({ data, viewYear, viewMonth, weeks, goPrevMonth, goNextMo
             <div className="today-name" style={{ color: colorFor(data.members, todaysAssignedId) }}>{todaysMember.name}</div>
             {todaysLeadTime ? (
               <div className="today-leadwarn">⏱ Braucht {todaysLeadTime} Std. Vorlaufzeit</div>
+            ) : null}
+            {todaysNote ? (
+              <div className="today-notewarn">❗ {todaysNote}</div>
             ) : null}
             {telHref ? (
               <a className="btn btn-call" href={telHref}><Phone size={16} /> Anrufen</a>
@@ -2002,10 +2091,11 @@ function UebersichtTab({ data, viewYear, viewMonth, weeks, goPrevMonth, goNextMo
           const backupMember = backupId ? data.members.find((m) => m.id === backupId) : null;
           const availEntry = assignedId ? (data.availability[assignedId] || {})[dateStr] : null;
           const leadTime = availEntry ? availEntry.leadTimeHours : null;
+          const note = availEntry ? availEntry.note : null;
           const isToday = dateStr === today;
           return (
             <div
-              className={`cell cell-readonly ${inMonth ? "" : "cell-out"} ${isToday ? "cell-today" : ""} ${leadTime ? "cell-leadwarn" : ""}`}
+              className={`cell cell-readonly ${inMonth ? "" : "cell-out"} ${isToday ? "cell-today" : ""} ${leadTime ? "cell-leadwarn" : ""} ${note ? "cell-notewarn" : ""}`}
               style={{ borderLeftColor: assignedId ? colorFor(data.members, assignedId) : "transparent" }}
             >
               <span className="cell-daynum">{parseDstr(dateStr).d}</span>
@@ -2013,6 +2103,7 @@ function UebersichtTab({ data, viewYear, viewMonth, weeks, goPrevMonth, goNextMo
               {assignedMember && <span className="assigned-name" style={{ color: colorFor(data.members, assignedId) }}>{assignedMember.name}</span>}
               {backupMember && <span className="assigned-backup" style={{ color: colorFor(data.members, backupId) }}>Backup: {backupMember.name}</span>}
               {leadTime ? <span className="leadtime-tag">⏱ {leadTime} Std.</span> : null}
+              {note ? <span className="note-tag" title={note}>❗ Hinweis</span> : null}
             </div>
           );
         }}
@@ -2031,7 +2122,25 @@ function UebersichtTab({ data, viewYear, viewMonth, weeks, goPrevMonth, goNextMo
 
 /* ---------- Tab: Statistik ---------- */
 
-function StatistikTab({ data, statYear, setStatYear, availableYears, stats }) {
+function StatistikTab({ data, statYear, setStatYear, availableYears, stats, updateStatsBaseline }) {
+  const [drafts, setDrafts] = useState({});
+
+  function baselineFor(personId) {
+    return (data.statsBaseline || {})[personId] || { count: 0, asOf: "" };
+  }
+  function draftCount(personId) {
+    const key = personId + ":count";
+    return drafts[key] !== undefined ? drafts[key] : String(baselineFor(personId).count || "");
+  }
+  function commitCount(personId) {
+    const key = personId + ":count";
+    const raw = drafts[key];
+    if (raw === undefined) return;
+    const num = Number(raw) || 0;
+    updateStatsBaseline(personId, { count: num });
+    setDrafts((d) => { const n = { ...d }; delete n[key]; return n; });
+  }
+
   return (
     <div className="tab-content">
       <div className="panel">
@@ -2041,6 +2150,10 @@ function StatistikTab({ data, statYear, setStatYear, availableYears, stats }) {
         </select>
       </div>
 
+      <p className="hint-text">
+        „Manueller Ist-Stand" addiert eine von euch eingetragene Anzahl bereits geleisteter Dienste (z. B. aus der Zeit vor dieser App) zur laufenden Zählung dazu und ergibt die Spalte „Gesamt". Das Datum „Stand vom" dient nur der Dokumentation.
+      </p>
+
       <div className="stats-table-wrap">
         <table className="stats-table">
           <thead>
@@ -2049,17 +2162,38 @@ function StatistikTab({ data, statYear, setStatYear, availableYears, stats }) {
               <th>Diensttage {statYear}</th>
               <th>davon an Feiertagen</th>
               <th>Backup-Tage</th>
+              <th>Manueller Ist-Stand</th>
+              <th>Stand vom</th>
+              <th>Gesamt</th>
             </tr>
           </thead>
           <tbody>
             {data.members.map((m) => {
               const s = stats[m.id] || { total: 0, holiday: 0, backup: 0 };
+              const baseline = baselineFor(m.id);
               return (
                 <tr key={m.id}>
                   <td style={{ color: colorFor(data.members, m.id) }}>{m.name}</td>
                   <td>{s.total}</td>
                   <td>{s.holiday > 0 ? `${s.holiday}` : "–"}</td>
                   <td>{s.backup > 0 ? `${s.backup}` : "–"}</td>
+                  <td>
+                    <input
+                      type="number" min="0" className="text-input mat-num-input"
+                      value={draftCount(m.id)}
+                      onChange={(e) => setDrafts((d) => ({ ...d, [m.id + ":count"]: e.target.value }))}
+                      onBlur={() => commitCount(m.id)}
+                      onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="date" className="text-input stats-date-input"
+                      value={baseline.asOf || ""}
+                      onChange={(e) => updateStatsBaseline(m.id, { asOf: e.target.value })}
+                    />
+                  </td>
+                  <td className="stats-total-cell">{s.total + (baseline.count || 0)}</td>
                 </tr>
               );
             })}
@@ -2309,121 +2443,57 @@ function MaterialTab({ data, materialImages, addBatch, consumeQty, deleteBatch, 
 
 /* ---------- Tab: Im Einsatz ---------- */
 
-function EinsatzTab({ data, einsatz, setEinsatzOrgan, setItemVariant, markItemsPacked, markItemsConsumed, resetEinsatzChecklist, updateChecklistItem, addChecklistItem, removeChecklistItem }) {
+function EinsatzTab({ data, einsatz, setEinsatzOrgan, setItemQty, markItemsPacked, markItemsConsumed, resetEinsatzChecklist }) {
   const [checked, setChecked] = useState({});
-  const [editMode, setEditMode] = useState(false);
-  const [newItemLabel, setNewItemLabel] = useState({ lunge: "", herz: "", rucksack: "" });
-
   const organ = einsatz.organ;
 
-  function toggleChecked(itemId) {
-    setChecked((c) => ({ ...c, [itemId]: !c[itemId] }));
+  function toggleChecked(materialId) {
+    setChecked((c) => ({ ...c, [materialId]: !c[materialId] }));
   }
 
-  function materialFor(id) { return data.materials.find((m) => m.id === id); }
+  const itemsForOrgan = organ ? data.materials.filter((m) => m.usage === organ || m.usage === "beide") : [];
 
-  function renderItemRow(listKey, item) {
-    const entry = einsatz.itemStatus[item.id] || {};
+  function renderMaterialRow(material) {
+    const entry = einsatz.itemStatus[material.id] || {};
     const status = entry.status || "offen";
-    const variant = entry.variant || (item.variantOptions ? item.variantOptions[0] : null);
-    const linkedMaterial = item.variantOptions ? materialFor(variant) : materialFor(item.materialId);
-    const stock = linkedMaterial ? materialTotalQty(linkedMaterial) : null;
-    const isChecked = !!checked[item.id];
+    const qty = entry.qty || 1;
+    const stock = materialTotalQty(material);
+    const isChecked = !!checked[material.id];
     return (
-      <div key={item.id} className={`einsatz-item einsatz-item-${status}`}>
+      <div key={material.id} className={`einsatz-item einsatz-item-${status}`}>
         <label className="einsatz-item-main">
-          <input type="checkbox" checked={isChecked} onChange={() => toggleChecked(item.id)} disabled={status === "consumed"} />
-          <span className="einsatz-item-label">{item.label}</span>
+          <input type="checkbox" checked={isChecked} onChange={() => toggleChecked(material.id)} disabled={status === "consumed"} />
+          <span className="einsatz-item-label">{material.name}</span>
           {status === "packed" && <span className="einsatz-status-tag einsatz-status-packed">gepackt</span>}
           {status === "consumed" && <span className="einsatz-status-tag einsatz-status-consumed">verbraucht</span>}
         </label>
         <div className="einsatz-item-meta">
-          {item.variantOptions ? (
-            <select className="select einsatz-variant-select" value={variant || ""} onChange={(e) => setItemVariant(item.id, e.target.value)}>
-              {item.variantOptions.map((mid) => {
-                const m = materialFor(mid);
-                return <option key={mid} value={mid}>{m ? m.name : mid}</option>;
-              })}
-            </select>
-          ) : linkedMaterial ? (
-            <span className="einsatz-linked">{linkedMaterial.name}{stock !== null ? ` (Bestand: ${stock})` : ""}</span>
-          ) : (
-            <span className="einsatz-linked einsatz-unlinked">kein Bestand verknüpft</span>
-          )}
-          <span className="einsatz-qty">× {item.qty}</span>
-          {editMode && (
-            <>
-              <select
-                className="select einsatz-link-select"
-                value={item.materialId || ""}
-                onChange={(e) => updateChecklistItem(listKey, item.id, { materialId: e.target.value || null })}
-              >
-                <option value="">– kein Bestand –</option>
-                {data.materials.map((m) => (<option key={m.id} value={m.id}>{m.name}</option>))}
-              </select>
-              <input
-                type="number" min="1" className="text-input mat-num-input"
-                value={item.qty}
-                onChange={(e) => updateChecklistItem(listKey, item.id, { qty: Number(e.target.value) || 1 })}
-              />
-              <button className="mini-btn mat-delete" onClick={() => removeChecklistItem(listKey, item.id)}><Trash2 size={12} /></button>
-            </>
-          )}
+          <span className={`einsatz-linked ${stock <= 0 ? "einsatz-linked-empty" : ""}`}>Bestand: {stock}</span>
+          <span className="field-label">Menge:</span>
+          <input
+            type="number" min="1" className="text-input mat-num-input einsatz-qty-input"
+            value={qty}
+            onChange={(e) => setItemQty(material.id, Math.max(1, Number(e.target.value) || 1))}
+            disabled={status === "consumed"}
+          />
         </div>
       </div>
     );
   }
 
-  function renderList(listKey, title, items) {
-    return (
-      <div className="einsatz-section" key={listKey}>
-        <h3 className="einsatz-section-title">{title}</h3>
-        {items.map((it) => renderItemRow(listKey, it))}
-        {editMode && (
-          <div className="inline-form">
-            <input
-              className="text-input" placeholder="Neuer Punkt"
-              value={newItemLabel[listKey]}
-              onChange={(e) => setNewItemLabel((s) => ({ ...s, [listKey]: e.target.value }))}
-            />
-            <button
-              className="btn btn-ghost"
-              onClick={() => {
-                if (newItemLabel[listKey].trim()) {
-                  addChecklistItem(listKey, newItemLabel[listKey].trim());
-                  setNewItemLabel((s) => ({ ...s, [listKey]: "" }));
-                }
-              }}
-            >
-              + Hinzufügen
-            </button>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  const activeListKeys = organ ? [organ, "rucksack"] : [];
-
   function selectedItemsData() {
-    const all = [];
-    activeListKeys.forEach((lk) => {
-      (data.checklists[lk] || []).forEach((item) => {
-        if (checked[item.id]) {
-          const entry = einsatz.itemStatus[item.id] || {};
-          const materialId = item.variantOptions ? (entry.variant || item.variantOptions[0]) : item.materialId;
-          all.push({ id: item.id, materialId, qty: item.qty });
-        }
+    return itemsForOrgan
+      .filter((m) => checked[m.id])
+      .map((m) => {
+        const entry = einsatz.itemStatus[m.id] || {};
+        return { id: m.id, materialId: m.id, qty: entry.qty || 1 };
       });
-    });
-    return all;
   }
 
-  const anyChecked = activeListKeys.some((lk) => (data.checklists[lk] || []).some((it) => checked[it.id]));
+  const anyChecked = itemsForOrgan.some((m) => checked[m.id]);
 
   function handleMarkPacked() {
-    const ids = [];
-    activeListKeys.forEach((lk) => (data.checklists[lk] || []).forEach((it) => { if (checked[it.id]) ids.push(it.id); }));
+    const ids = itemsForOrgan.filter((m) => checked[m.id]).map((m) => m.id);
     markItemsPacked(ids);
     setChecked((c) => { const n = { ...c }; ids.forEach((id) => delete n[id]); return n; });
   }
@@ -2432,6 +2502,8 @@ function EinsatzTab({ data, einsatz, setEinsatzOrgan, setItemVariant, markItemsP
     markItemsConsumed(items);
     setChecked((c) => { const n = { ...c }; items.forEach((it) => delete n[it.id]); return n; });
   }
+
+  const organLabel = organ === "lunge" ? "Lunge" : organ === "herz" ? "Herz" : "";
 
   return (
     <div className="tab-content">
@@ -2443,15 +2515,20 @@ function EinsatzTab({ data, einsatz, setEinsatzOrgan, setItemVariant, markItemsP
             <button className={`organ-btn ${organ === "herz" ? "organ-btn-active" : ""}`} onClick={() => setEinsatzOrgan("herz")}>Herz</button>
           </div>
         </div>
-        <button className="btn btn-ghost" onClick={() => setEditMode((e) => !e)}>{editMode ? "Fertig" : "Listen bearbeiten"}</button>
       </div>
 
       {!organ ? (
-        <p className="hint-text">Bitte oben Lunge oder Herz wählen, um die Packliste zu sehen.</p>
+        <p className="hint-text">Bitte oben Lunge oder Herz wählen, um die Materialliste zu sehen.</p>
+      ) : itemsForOrgan.length === 0 ? (
+        <p className="hint-text">
+          Noch kein Material für „{organLabel}" hinterlegt. Im Material-Tab bei den einzelnen Artikeln die Verwendung „{organLabel}" oder „Beide" zuweisen.
+        </p>
       ) : (
         <>
-          {renderList(organ, organ === "lunge" ? "Material für Lunge" : "Material für Herz", data.checklists[organ] || [])}
-          {renderList("rucksack", "Materialrucksack", data.checklists.rucksack || [])}
+          <div className="einsatz-section">
+            <h3 className="einsatz-section-title">Material für {organLabel}</h3>
+            {itemsForOrgan.map((m) => renderMaterialRow(m))}
+          </div>
 
           <div className="einsatz-actions">
             <button className="btn btn-ghost" onClick={handleMarkPacked} disabled={!anyChecked}>Ausgewählte als gepackt markieren</button>
@@ -2459,7 +2536,7 @@ function EinsatzTab({ data, einsatz, setEinsatzOrgan, setItemVariant, markItemsP
             <button className="btn btn-ghost" onClick={resetEinsatzChecklist}><RotateCcw size={14} /> Einsatz zurücksetzen</button>
           </div>
           <p className="hint-text">
-            „Gepackt" merkt vor, was mitgenommen wurde – der Bestand ändert sich noch nicht. „Verbraucht" bucht die Menge tatsächlich vom Material-Bestand ab.
+            „Gepackt" merkt vor, was mitgenommen wurde – der Bestand ändert sich noch nicht. „Verbraucht" bucht die eingestellte Menge tatsächlich vom Material-Bestand ab. Welche Artikel hier erscheinen, legst du im Material-Tab über die Verwendung (Lunge/Herz/Beide) fest.
           </p>
         </>
       )}
@@ -2517,6 +2594,8 @@ function Logo({ size = 40 }) {
 
 const rootEl = document.getElementById("root");
 ReactDOM.createRoot(rootEl).render(<App />);
+
+
 
 
 

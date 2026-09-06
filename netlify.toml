@@ -1,14 +1,24 @@
+[build]
+  functions = "netlify/functions"
+
+[functions]
+  directory = "netlify/functions"
+
 [[redirects]]
   from = "/api/doc"
   to = "/.netlify/functions/doc"
   status = 200
+  force = true
 
 [[redirects]]
   from = "/api/collection"
   to = "/.netlify/functions/collection"
   status = 200
+  force = true
 
 [[redirects]]
   from = "/api/ical"
   to = "/.netlify/functions/ical"
   status = 200
+  force = true
+
