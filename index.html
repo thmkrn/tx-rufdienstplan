@@ -1,0 +1,2528 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Team Thoraxorgane – Rufdienstplan</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%AB%80%3C/text%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
+<style>
+
+
+
+
+
+
+      @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap');
+
+      :root {
+        --bg: #F0EEE7;
+        --panel: #FBFAF6;
+        --ink: #20262F;
+        --muted: #766F62;
+        --line: #DAD5C8;
+        --heart: #B23A32;
+        --lung: #3E7C8A;
+        --green: #4C7A52;
+        --green-bg: #E4EDE3;
+        --amber: #B4791F;
+        --amber-bg: #F3E5C7;
+        --surface: #FFFFFF;
+        --bad-bg: #F5DCD9;
+        --amber-text: #8A4D10;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) {
+          --bg: #1B1F26;
+          --panel: #23282F;
+          --ink: #EDEAE2;
+          --muted: #9A9384;
+          --line: #3A3F47;
+          --heart: #E0766D;
+          --lung: #6FB0BE;
+          --green: #7FB98A;
+          --green-bg: #223327;
+          --amber: #E0AC55;
+          --amber-bg: #3A2F17;
+          --surface: #2A2F37;
+          --bad-bg: #4A2622;
+          --amber-text: #F0C98A;
+        }
+      }
+      :root[data-theme="dark"] {
+        --bg: #1B1F26;
+        --panel: #23282F;
+        --ink: #EDEAE2;
+        --muted: #9A9384;
+        --line: #3A3F47;
+        --heart: #E0766D;
+        --lung: #6FB0BE;
+        --green: #7FB98A;
+        --green-bg: #223327;
+        --amber: #E0AC55;
+        --amber-bg: #3A2F17;
+        --surface: #2A2F37;
+        --bad-bg: #4A2622;
+        --amber-text: #F0C98A;
+      }
+      html, body {
+        margin: 0;
+        min-height: 100%;
+        background: var(--bg);
+      }
+      * , *::before, *::after { box-sizing: border-box; }
+      .tx-app {
+        font-family: 'Inter', sans-serif;
+        color: var(--ink);
+        background: var(--bg);
+        min-height: 100vh;
+        width: 100%;
+      }
+
+      .login-screen {
+        min-height: 480px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+      }
+      .login-card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        padding: 36px 32px;
+        text-align: center;
+        max-width: 320px;
+        width: 100%;
+      }
+      .login-title {
+        font-family: 'Fraunces', serif;
+        font-weight: 600;
+        font-size: 22px;
+        margin: 14px 0 2px;
+      }
+      .login-sub { color: var(--muted); font-size: 14px; margin: 0 0 18px; }
+      .login-oncall-preview {
+        background: var(--bg);
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        padding: 12px 14px;
+        margin-bottom: 20px;
+      }
+      .login-oncall-label { font-size: 11px; color: var(--muted); }
+      .login-oncall-name { font-family: 'Fraunces', serif; font-weight: 600; font-size: 20px; margin-top: 2px; }
+      .login-oncall-none { color: var(--muted); font-size: 16px; }
+      .login-oncall-lead { font-size: 12px; color: var(--amber-text); font-weight: 600; margin-top: 4px; }
+      .login-oncall-backup { font-size: 12px; color: var(--muted); margin-top: 4px; }
+      .login-input {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid var(--line);
+        border-radius: 3px;
+        font-size: 15px;
+        font-family: inherit;
+        background: var(--surface);
+        color: var(--ink);
+      }
+      .login-error { color: var(--heart); font-size: 13px; margin: 8px 0 0; }
+      .login-btn { width: 100%; margin-top: 14px; }
+      .loading-text { color: var(--muted); }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        justify-content: center;
+        border: none;
+        border-radius: 3px;
+        padding: 10px 16px;
+        font-size: 14px;
+        font-weight: 600;
+        font-family: inherit;
+        cursor: pointer;
+      }
+      .btn-primary { background: var(--heart); color: #fff; }
+      .btn-primary:hover { background: #9c332c; }
+      .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--line); }
+      .btn-ghost:hover { color: var(--ink); border-color: var(--muted); }
+      .btn-call {
+        background: var(--green);
+        color: #fff;
+        text-decoration: none;
+        margin-top: 10px;
+      }
+
+      .app-header {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px 20px;
+        border-bottom: 1px solid var(--line);
+        background: var(--panel);
+      }
+      .header-brand { display: flex; align-items: center; gap: 12px; }
+      .logo-emoji { display: inline-flex; align-items: center; }
+      .lock-btn { font-size: 12px; padding: 6px 10px; white-space: nowrap; }
+      .brand-title { font-family: 'Fraunces', serif; font-weight: 600; font-size: 17px; line-height: 1.2; }
+      .brand-sub { font-size: 12px; color: var(--muted); }
+
+      .tab-nav { display: flex; gap: 4px; flex-wrap: wrap; }
+      .tab-btn {
+        background: transparent;
+        border: 1px solid var(--line);
+        color: var(--muted);
+        padding: 7px 13px;
+        font-size: 13px;
+        font-family: inherit;
+        font-weight: 500;
+        border-radius: 3px;
+        cursor: pointer;
+      }
+      .tab-btn.active { background: var(--heart); color: #fff; border-color: var(--heart); }
+
+      .app-main { padding: 18px 20px 40px; max-width: 900px; margin: 0 auto; }
+      .tab-content { display: flex; flex-direction: column; gap: 14px; }
+
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        padding: 14px 16px;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        gap: 16px;
+      }
+      .field-label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+      .person-picker { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; }
+      .select, .text-input {
+        padding: 8px 10px;
+        border: 1px solid var(--line);
+        border-radius: 3px;
+        font-size: 14px;
+        font-family: inherit;
+        background: var(--surface);
+        color: var(--ink);
+        min-width: 190px;
+      }
+
+      .hint-text { font-size: 13px; color: var(--muted); line-height: 1.5; margin: 0; }
+
+      .month-nav {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+      }
+      .nav-btn {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 3px;
+        padding: 6px;
+        cursor: pointer;
+        color: var(--ink);
+        display: flex;
+      }
+      .month-label { font-family: 'Fraunces', serif; font-weight: 600; font-size: 16px; min-width: 150px; text-align: center; }
+
+      .cal-grid { display: flex; flex-direction: column; gap: 4px; }
+      .cal-week-row { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+      .cal-header-row { margin-bottom: 2px; }
+      .cal-weekday { text-align: center; font-size: 11px; color: var(--muted); font-weight: 600; padding: 4px 0; }
+      .cal-cell-wrap { min-width: 0; }
+
+      .cell {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-left: 3px solid transparent;
+        border-radius: 3px;
+        min-height: 68px;
+        padding: 5px 6px;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        cursor: pointer;
+        user-select: none;
+        position: relative;
+      }
+      .cell-readonly { cursor: default; }
+      .cell-disabled { cursor: not-allowed; opacity: 0.7; }
+      .cell-out { opacity: 0.38; }
+      .cell-today { box-shadow: 0 0 0 2px var(--ink) inset; }
+      .cell-leadwarn { border-style: dashed; border-color: var(--amber); border-width: 1px; }
+      .cell.status-verfuegbar { background: var(--green-bg); }
+      .cell.status-vielleicht { background: var(--amber-bg); }
+
+      .cell-top { display: flex; align-items: center; justify-content: space-between; }
+      .cell-daynum { font-size: 12px; font-weight: 600; color: var(--ink); }
+      .today-tag { font-size: 9px; font-weight: 700; letter-spacing: 0.03em; color: var(--heart); }
+
+      .lead-btn {
+        background: transparent;
+        border: none;
+        color: var(--muted);
+        cursor: pointer;
+        padding: 1px;
+        display: flex;
+      }
+      .lead-btn:hover { color: var(--amber); }
+
+      .status-pill { font-size: 10px; font-weight: 600; }
+      .status-verfuegbar .status-pill { color: var(--green); }
+      .status-vielleicht .status-pill { color: var(--amber); }
+      .leadtime-tag { font-size: 9px; color: var(--amber); font-weight: 600; }
+      .cell-scheduled { box-shadow: 0 0 0 2px var(--heart) inset; }
+      .scheduled-tag { display: block; font-size: 9px; font-weight: 700; color: var(--heart); }
+      .scheduled-tag-backup { color: var(--amber-text); }
+
+      .ical-subscribe-panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        padding: 14px 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .ical-subscribe-title { font-family: 'Fraunces', serif; font-size: 15px; font-weight: 600; margin: 0; }
+      .ical-url-row { display: flex; gap: 8px; flex-wrap: wrap; }
+      .ical-url-input { flex: 1; min-width: 220px; font-size: 12px; }
+
+      .assigned-name { font-size: 11px; font-weight: 600; line-height: 1.2; }
+
+      .legend-row { display: flex; flex-wrap: wrap; gap: 12px; }
+      .legend-chip { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--muted); }
+      .legend-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+      .legend-dot-verf { background: var(--green); }
+      .legend-dot-viell { background: var(--amber); }
+
+      .ref-table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); }
+      .ref-table { border-collapse: collapse; font-size: 11px; width: 100%; }
+      .ref-table th, .ref-table td { padding: 4px 5px; text-align: center; border-bottom: 1px solid var(--line); white-space: nowrap; }
+      .ref-corner { min-width: 90px; }
+      .ref-name { text-align: left; font-weight: 600; }
+      .ref-cell { width: 18px; height: 18px; }
+      .ref-cell.ref-verfuegbar { background: var(--green); }
+      .ref-cell.ref-vielleicht { background: var(--amber); }
+      .ref-cell.ref-lead { box-shadow: inset 0 0 0 2px var(--heart); }
+
+      .today-banner {
+        background: var(--panel);
+        border: 2px solid var(--line);
+        border-radius: 5px;
+        padding: 18px 20px;
+        text-align: center;
+      }
+      .today-date { font-size: 12px; color: var(--muted); }
+      .today-label { font-size: 12px; text-transform: none; color: var(--muted); margin-top: 2px; }
+      .today-name { font-family: 'Fraunces', serif; font-weight: 600; font-size: 30px; margin-top: 4px; }
+      .today-none { color: var(--muted); font-size: 20px; }
+      .today-leadwarn { font-size: 13px; color: var(--amber); font-weight: 600; margin-top: 6px; }
+      .no-phone-note { font-size: 12px; color: var(--muted); margin-top: 10px; }
+
+      .stats-table-wrap { border: 1px solid var(--line); border-radius: 4px; background: var(--surface); overflow-x: auto; }
+      .stats-table { border-collapse: collapse; width: 100%; font-size: 14px; }
+      .stats-table th, .stats-table td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--line); }
+      .stats-table th { font-size: 11px; color: var(--muted); font-weight: 600; }
+
+      .reset-btn { align-self: flex-start; }
+
+      .mat-summary { padding: 10px 14px; border-radius: 4px; font-size: 13px; font-weight: 600; }
+      .mat-summary-ok { background: var(--green-bg); color: var(--green); }
+      .mat-summary-warn { background: var(--amber-bg); color: var(--amber-text); }
+
+      .mat-controls { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+      .mat-filter-label { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+
+      .mat-list { display: flex; flex-direction: column; gap: 6px; }
+      .mat-row { border: 1px solid var(--line); border-radius: 4px; background: var(--panel); overflow: hidden; }
+      .mat-row-main {
+        display: grid;
+        grid-template-columns: auto 1fr auto auto auto;
+        gap: 12px;
+        align-items: center;
+        padding: 10px 14px;
+        cursor: pointer;
+      }
+      .mat-name { font-weight: 600; font-size: 14px; }
+      .mat-ref { font-size: 11px; color: var(--muted); margin-top: 1px; }
+      .mat-qty-badge, .mat-expiry-badge {
+        font-size: 12px;
+        font-weight: 600;
+        padding: 4px 9px;
+        border-radius: 20px;
+        white-space: nowrap;
+        background: var(--bg);
+        color: var(--muted);
+      }
+      .mat-badge-ok { background: var(--green-bg); color: var(--green); }
+      .mat-badge-warn { background: var(--amber-bg); color: var(--amber-text); }
+      .mat-badge-bad { background: var(--bad-bg); color: var(--heart); }
+
+      .mat-detail { padding: 4px 14px 14px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 10px; }
+      .mat-batch-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+      .mat-batch-table th, .mat-batch-table td { padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--line); }
+      .mat-batch-expired { background: var(--bad-bg); }
+      .mat-batch-soon { background: var(--amber-bg); }
+
+      .mat-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+      .mat-min-edit { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+      .mat-num-input { min-width: 70px; width: 80px; }
+      .mini-btn { background: transparent; border: 1px solid var(--line); border-radius: 3px; cursor: pointer; padding: 2px 7px; font-size: 12px; color: var(--muted); }
+      .mini-btn:hover { color: var(--heart); border-color: var(--heart); }
+      .mat-delete { color: var(--heart); border-color: var(--heart); margin-left: auto; }
+
+      .inline-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 8px 0; }
+
+      /* ---- Admin: Zuweisungsmatrix ---- */
+      .assign-badge { padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+      .assign-table th, .assign-table td { padding: 3px 4px; }
+      .assign-monday-col { border-left: 2px solid var(--muted); }
+      .assign-cell {
+        min-width: 26px;
+        height: 28px;
+        cursor: default;
+        text-align: center;
+        vertical-align: middle;
+        white-space: nowrap;
+        color: var(--ink);
+      }
+      .assign-cell-clickable { cursor: pointer; }
+      .assign-cell-clickable:hover { outline: 2px solid var(--lung); outline-offset: -2px; }
+      .assign-cell-primary { box-shadow: inset 0 0 0 2px var(--green); }
+      .assign-cell-backup { box-shadow: inset 0 0 0 2px var(--amber); }
+      .assign-name-text { font-size: 11px; font-weight: 600; padding: 0 3px; }
+      .assign-role-tag {
+        display: inline-block;
+        margin-left: 3px;
+        font-size: 9px;
+        font-weight: 800;
+        padding: 1px 5px;
+        border-radius: 8px;
+        color: #fff;
+        vertical-align: middle;
+      }
+      .assign-role-primary { background: var(--green); }
+      .assign-role-backup { background: var(--amber); }
+
+      .assigned-backup { font-size: 10px; font-weight: 600; opacity: 0.85; }
+      .today-backup-block { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--line); }
+      .today-backup-label { font-size: 11px; color: var(--muted); text-transform: none; }
+      .today-backup-name { font-family: 'Fraunces', serif; font-weight: 600; font-size: 18px; }
+      .btn-call-backup { margin-top: 6px; }
+
+      /* ---- Material: Steuerzeile, Bild, Name, Verwendung ---- */
+      .mat-controls-right { display: flex; gap: 8px; flex-wrap: wrap; }
+      .mat-thumb { width: 32px; height: 32px; border-radius: 3px; object-fit: cover; border: 1px solid var(--line); flex-shrink: 0; }
+      .mat-thumb-empty { display: flex; align-items: center; justify-content: center; color: var(--muted); background: var(--bg); }
+      .mat-thumb-lg { width: 84px; height: 84px; border-radius: 4px; object-fit: cover; border: 1px solid var(--line); flex-shrink: 0; }
+      .mat-usage-badge { font-size: 10px; font-weight: 600; color: var(--lung); border: 1px solid var(--lung); border-radius: 20px; padding: 2px 8px; white-space: nowrap; }
+
+      .mat-editrow { display: flex; gap: 14px; align-items: flex-start; flex-wrap: wrap; }
+      .mat-image-edit { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+      .mat-image-actions { display: flex; gap: 6px; align-items: center; }
+      .mat-upload-label { position: relative; cursor: pointer; font-size: 11px; padding: 5px 9px; overflow: visible; }
+      .mat-file-input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; z-index: 2; }
+      .mat-name-edit-block { display: flex; flex-direction: column; gap: 8px; flex: 1; min-width: 200px; }
+      .mat-name-edit-btn { background: transparent; border: none; color: var(--muted); font-size: 12px; display: flex; align-items: center; gap: 5px; cursor: pointer; padding: 0; }
+      .mat-name-edit-btn:hover { color: var(--ink); }
+      .mat-usage-picker { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+      .usage-btn { background: var(--bg); border: 1px solid var(--line); border-radius: 20px; padding: 3px 10px; font-size: 11px; color: var(--muted); cursor: pointer; }
+      .usage-btn-active { background: var(--lung); border-color: var(--lung); color: #fff; }
+
+      /* ---- Tab: Im Einsatz ---- */
+      .organ-picker { display: flex; gap: 8px; margin-top: 4px; }
+      .organ-btn { background: var(--surface); border: 1px solid var(--line); border-radius: 3px; padding: 8px 18px; font-size: 14px; font-weight: 600; color: var(--muted); cursor: pointer; }
+      .organ-btn-active { background: var(--heart); border-color: var(--heart); color: #fff; }
+
+      .einsatz-section { background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+      .einsatz-section-title { font-family: 'Fraunces', serif; font-size: 15px; font-weight: 600; margin: 0 0 2px; }
+      .einsatz-item { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+      .einsatz-item:last-child { border-bottom: none; }
+      .einsatz-item-main { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; }
+      .einsatz-item-label { font-weight: 500; }
+      .einsatz-status-tag { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 20px; }
+      .einsatz-status-packed { background: var(--amber-bg); color: var(--amber-text); }
+      .einsatz-status-consumed { background: var(--green-bg); color: var(--green); }
+      .einsatz-item-meta { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); flex-wrap: wrap; }
+      .einsatz-linked { white-space: nowrap; }
+      .einsatz-unlinked { font-style: italic; opacity: 0.7; }
+      .einsatz-qty { font-weight: 600; }
+      .einsatz-variant-select, .einsatz-link-select { font-size: 12px; padding: 4px 6px; }
+      .einsatz-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+
+      @media (max-width: 560px) {
+        .cell { min-height: 54px; padding: 4px; }
+        .cell-daynum { font-size: 11px; }
+        .assigned-name { font-size: 10px; }
+        .app-main { padding: 14px 10px 32px; }
+        .today-name { font-size: 24px; }
+        .mat-row-main { grid-template-columns: 1fr; }
+        .mat-editrow { flex-direction: column; }
+      }
+
+      /* ---- Admin: Wochenkarten ---- */
+      .week-list { display: flex; flex-direction: column; gap: 10px; }
+      .week-card { background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+      .week-card-current { border-color: var(--heart); border-width: 2px; }
+      .week-card-header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px; }
+      .week-card-range { font-family: 'Fraunces', serif; font-weight: 600; font-size: 14px; }
+      .week-card-summary { font-size: 13px; font-weight: 600; }
+      .week-card-empty { color: var(--muted); font-weight: 500; }
+      .week-name-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+      .name-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        background: var(--bg);
+        border: 2px solid transparent;
+        border-radius: 20px;
+        padding: 5px 12px;
+        font-size: 13px;
+        font-family: inherit;
+        font-weight: 500;
+        color: var(--ink);
+        cursor: pointer;
+      }
+      .name-chip-verfuegbar { background: var(--green-bg); }
+      .name-chip-vielleicht { background: var(--amber-bg); }
+      .name-chip-primary, .name-chip-backup { font-weight: 700; background: var(--surface); }
+      .name-chip-lead { font-size: 11px; }
+
+      /* ---- Admin: Kalenderansicht mit Namens-Chips ---- */
+      .cell-admin { min-height: 92px; align-items: stretch; }
+      .cell-admin-monday { border-left: 3px solid var(--lung); }
+      .admin-week-hint { font-size: 8px; font-weight: 700; color: var(--lung); background: var(--bg); border-radius: 3px; padding: 1px 4px; }
+      .admin-chip-list { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 3px; }
+      .admin-no-avail { color: var(--muted); font-size: 11px; }
+      .admin-mini-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        background: var(--bg);
+        border: 2px solid transparent;
+        border-radius: 10px;
+        padding: 1px 5px;
+        font-size: 9.5px;
+        font-family: inherit;
+        font-weight: 600;
+        color: var(--ink);
+        cursor: pointer;
+        line-height: 1.5;
+      }
+      .admin-mini-chip-verfuegbar { background: var(--green-bg); }
+      .admin-mini-chip-vielleicht { background: var(--amber-bg); }
+      .admin-mini-chip-primary, .admin-mini-chip-backup { background: var(--surface); }
+      .admin-role-dot { font-size: 8px; font-weight: 800; padding: 0 3px; border-radius: 6px; color: #fff; }
+      .admin-role-dot-p { background: var(--green); }
+      .admin-role-dot-b { background: var(--amber); }
+      .admin-lead-dot { font-size: 8px; }
+
+      .people-manage-panel { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+      .people-manage-list { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 360px; }
+      .people-manage-row { display: flex; align-items: center; gap: 8px; }
+      .people-color-input { width: 34px; height: 34px; padding: 2px; border: 1px solid var(--line); border-radius: 3px; background: var(--surface); cursor: pointer; }
+      .people-name-input { flex: 1; }
+    
+
+
+
+
+
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+
+
+
+
+
+
+const { useState, useEffect, useRef, useMemo } = React;
+
+/* ---------- Icons (ersetzen lucide-react, da im Artifact keine ES-Module-Imports möglich sind) ---------- */
+
+function iconProps(size) {
+  return { width: size || 16, height: size || 16, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" };
+}
+function Phone({ size }) {
+  return (
+    <svg {...iconProps(size)}>
+      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z" />
+    </svg>
+  );
+}
+function ChevronLeft({ size }) {
+  return (<svg {...iconProps(size)}><polyline points="15 18 9 12 15 6" /></svg>);
+}
+function ChevronRight({ size }) {
+  return (<svg {...iconProps(size)}><polyline points="9 18 15 12 9 6" /></svg>);
+}
+function Clock({ size }) {
+  return (<svg {...iconProps(size)}><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>);
+}
+function RotateCcw({ size }) {
+  return (<svg {...iconProps(size)}><polyline points="1 4 1 10 7 10" /><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" /></svg>);
+}
+function Download({ size }) {
+  return (<svg {...iconProps(size)}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>);
+}
+function ImageIcon({ size }) {
+  return (<svg {...iconProps(size)}><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>);
+}
+function Trash2({ size }) {
+  return (<svg {...iconProps(size)}><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>);
+}
+function Package({ size }) {
+  return (<svg {...iconProps(size)}><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" /><polyline points="3.27 6.96 12 12.01 20.73 6.96" /><line x1="12" y1="22.08" x2="12" y2="12" /></svg>);
+}
+function Pencil({ size }) {
+  return (<svg {...iconProps(size)}><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z" /></svg>);
+}
+
+/* ---------- Konstanten ---------- */
+
+const PASSWORD = "tx-rufdienst";
+const MEMBERS_BASE = [
+  { id: "jonas", name: "Jonas", color: "#B23A32" },
+  { id: "lennart_muehe", name: "Lennart Mühe", color: "#3E7C8A" },
+  { id: "lennart_moeller", name: "Lennart Möller", color: "#C98A2E" },
+  { id: "tobi", name: "Tobi", color: "#5B7A4F" },
+  { id: "lisa", name: "Lisa", color: "#6B5A85" },
+  { id: "niklas", name: "Niklas", color: "#3F5D7D" },
+  { id: "thiemo", name: "Thiemo", color: "#A85C32" },
+];
+
+const EXPIRY_WARNING_DAYS = 60;
+
+const MATERIALS_SEED = [
+  { id: "organbeutel_lunge", name: 'Organbeutel „Lunge"', refNr: "800066", minQty: 10, usage: "lunge" },
+  { id: "organbeutel_herz", name: 'Organbeutel „Herz"', refNr: "800059", minQty: 5, usage: "herz" },
+  { id: "stapler_30mm", name: "Stapler 30mm – 3,5mm", refNr: "TA3035S", minQty: 10, usage: "lunge" },
+  { id: "staplerpatrone", name: "Staplerpatrone (VE á 6 Stk.)", refNr: "TA3035L", minQty: 2, usage: "lunge" },
+  { id: "pulmonaliskanuele_22fr", name: "Pulmonalis-Kanüle 22Fr.", refNr: "75322", minQty: 5, usage: "lunge" },
+  { id: "konnektor_lunge", name: "Konnektor ¼ x 3/8 (Lunge)", refNr: "K3322", minQty: 5, usage: "lunge" },
+  { id: "messleitung_100cm", name: "Messleitung 100cm", refNr: "2210010", minQty: 10, usage: "beide" },
+  { id: "kanuele_grau_27ga", name: 'Kanüle „grau" 27GA', refNr: "305770", minQty: 10, usage: "beide" },
+  { id: "kanuele_gruen", name: 'Kanüle „grün"', refNr: "", minQty: 10, usage: "beide" },
+  { id: "male_male_adapter", name: "Male ↔ Male Adapter", refNr: "5206642", minQty: 10, usage: "beide" },
+  { id: "tourniquet", name: "Tourniquet 17,8cm", refNr: "79005", minQty: 10, usage: "beide" },
+  { id: "plegieadapter_dortmund", name: 'Plegieadapter „Dortmund"', refNr: "FLS0030078", minQty: 5, usage: "herz" },
+  { id: "ao_kanuele_16ga", name: "Ao.-Kanüle 16GA", refNr: "20016", minQty: 3, usage: "herz" },
+  { id: "ao_kanuele_12ga", name: "Ao.-Kanüle 12GA", refNr: "FLK C38 K20", minQty: 3, usage: "herz" },
+  { id: "perf_set_4laeufig", name: "4-läufiges Perf.-Set", refNr: "DE27070260", minQty: 5, usage: "lunge" },
+  { id: "perf_set_2laeufig", name: "2-läufiges Perf.-Set", refNr: "", minQty: 3, usage: "herz" },
+  { id: "custodiol_2l", name: "Custodiol 2l-Beutel", refNr: "PZN 00867348", minQty: 0, usage: "herz" },
+  { id: "perfadex_1l", name: "Perfadex 1l-Beutel", refNr: "19811", minQty: 0, usage: "lunge" },
+  { id: "nacl_09", name: "NaCl 0,9%-Beutel", refNr: "PZN 00646268", minQty: 0, usage: "herz" },
+  { id: "ringer_1l", name: "Ringer-Spülung 1l Flasche", refNr: "PZN 04801719", minQty: 0, usage: "herz" },
+];
+
+const USAGE_LABELS = { lunge: "Lunge", herz: "Herz", beide: "Beide" };
+
+function checklistItem(id, label, materialId, qty, variantOptions) {
+  return { id, label, materialId: materialId || null, qty: qty || 1, variantOptions: variantOptions || null };
+}
+
+const CHECKLISTS_SEED = {
+  lunge: [
+    checklistItem("l1", "Messleitung", "messleitung_100cm", 1),
+    checklistItem("l2", "Kanüle", "kanuele_grau_27ga", 1),
+    checklistItem("l3", "Männl.-Männl. Adapter", "male_male_adapter", 1),
+    checklistItem("l4", "Perfusionssystem 4-läufig", "perf_set_4laeufig", 1),
+    checklistItem("l5", "Pulmonaliskanüle", "pulmonaliskanuele_22fr", 1),
+    checklistItem("l6", 'Konnektor 1/4" x 3/8"', "konnektor_lunge", 1),
+    checklistItem("l7", "Tourniquet", "tourniquet", 1),
+    checklistItem("l8", "Organbeutel", "organbeutel_lunge", 1),
+    checklistItem("l9", "Stapler", "stapler_30mm", 1),
+    checklistItem("l10", "Stapler Nachlader", "staplerpatrone", 1),
+    checklistItem("l11", "1 Spritze", null, 1),
+    checklistItem("l12", "1 Kanüle (grün)", "kanuele_gruen", 1),
+  ],
+  herz: [
+    checklistItem("h1", "Custodiol-Perfusionslösung 8 Liter (Kinder 6 Liter)", "custodiol_2l", 4),
+    checklistItem("h2", "Ringer 2 Liter", "ringer_1l", 2),
+    checklistItem("h3", "NaCl (gefroren) 3 Pakete", "nacl_09", 3),
+  ],
+  rucksack: [
+    checklistItem("r1", "Perfusionssystem (2-läufig)", "perf_set_2laeufig", 1),
+    checklistItem("r2", "Organbeutel Herz", "organbeutel_herz", 1),
+    checklistItem("r3", "Aortenkanüle (Variante wählen)", null, 1, ["ao_kanuele_16ga", "ao_kanuele_12ga"]),
+    checklistItem("r4", "Tourniquet 2 Stück", "tourniquet", 2),
+    checklistItem("r5", "Adapter 2 Stück", "male_male_adapter", 2),
+    checklistItem("r6", "Druckmessleitung", "messleitung_100cm", 1),
+    checklistItem("r7", 'Adapter „männlich-männlich"', "male_male_adapter", 1),
+    checklistItem("r8", "Messkanüle (grüne Kanüle)", "kanuele_gruen", 1),
+  ],
+};
+
+function newId() { return Math.random().toString(36).slice(2, 10); }
+
+const MONTH_NAMES = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+const WEEKDAY_SHORT = ["Mo","Di","Mi","Do","Fr","Sa","So"];
+const WEEKDAY_FULL = ["Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag","Sonntag"];
+
+/* ---------- Datumshelfer ---------- */
+
+function pad(n) { return String(n).padStart(2, "0"); }
+function dstr(y, m, d) { return `${y}-${pad(m + 1)}-${pad(d)}`; }
+function parseDstr(s) { const [y, m, d] = s.split("-").map(Number); return { y, m: m - 1, d }; }
+function toDate(s) { const { y, m, d } = parseDstr(s); return new Date(y, m, d); }
+function dowMon0(s) { return (toDate(s).getDay() + 6) % 7; }
+function todayStr() { const t = new Date(); return dstr(t.getFullYear(), t.getMonth(), t.getDate()); }
+function daysInMonth(year, month) { return new Date(year, month + 1, 0).getDate(); }
+function addDaysStr(dateStr, n) {
+  const dt = toDate(dateStr);
+  dt.setDate(dt.getDate() + n);
+  return dstr(dt.getFullYear(), dt.getMonth(), dt.getDate());
+}
+
+function weekFromMonday(mondayStr) {
+  const dt = toDate(mondayStr);
+  const out = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(dt); d.setDate(d.getDate() + i);
+    out.push(dstr(d.getFullYear(), d.getMonth(), d.getDate()));
+  }
+  return out;
+}
+
+function buildMonthGrid(year, month) {
+  const first = new Date(year, month, 1);
+  const firstDow = (first.getDay() + 6) % 7;
+  const gridStart = new Date(year, month, 1 - firstDow);
+  const weeks = [];
+  const cur = new Date(gridStart);
+  for (let w = 0; w < 6; w++) {
+    const week = [];
+    for (let d = 0; d < 7; d++) {
+      week.push(dstr(cur.getFullYear(), cur.getMonth(), cur.getDate()));
+      cur.setDate(cur.getDate() + 1);
+    }
+    weeks.push(week);
+  }
+  return weeks;
+}
+
+function easterDate(year) {
+  const a = year % 19, b = Math.floor(year / 100), c = year % 100;
+  const d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31);
+  const day = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(year, month - 1, day);
+}
+function addD(dt, n) { const d = new Date(dt); d.setDate(d.getDate() + n); return d; }
+function shHolidays(year) {
+  const easter = easterDate(year);
+  const set = new Set();
+  const push = (dt) => set.add(dstr(dt.getFullYear(), dt.getMonth(), dt.getDate()));
+  push(new Date(year, 0, 1));
+  push(addD(easter, -2));
+  push(addD(easter, 1));
+  push(new Date(year, 4, 1));
+  push(addD(easter, 39));
+  push(addD(easter, 50));
+  push(new Date(year, 9, 3));
+  push(new Date(year, 9, 31));
+  push(new Date(year, 11, 25));
+  push(new Date(year, 11, 26));
+  return set;
+}
+
+function generateToken() {
+  if (window.crypto && window.crypto.getRandomValues) {
+    const bytes = new Uint8Array(18);
+    window.crypto.getRandomValues(bytes);
+    return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  }
+  return Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+}
+
+function defaultData() {
+  return {
+    members: MEMBERS_BASE.map((m) => ({ id: m.id, name: m.name, phone: "", color: m.color, calendarToken: generateToken() })),
+    availability: {},
+    assignments: {},
+    backupAssignments: {},
+    materials: MATERIALS_SEED.map((m) => ({ ...m, batches: [] })),
+    checklists: JSON.parse(JSON.stringify(CHECKLISTS_SEED)),
+  };
+}
+
+function defaultEinsatz() {
+  return { organ: null, itemStatus: {} };
+}
+
+function daysUntil(dateStr) {
+  const d = toDate(dateStr);
+  const t = new Date(); t.setHours(0, 0, 0, 0);
+  return Math.round((d.getTime() - t.getTime()) / 86400000);
+}
+
+function materialTotalQty(mat) {
+  return mat.batches.reduce((sum, b) => sum + b.qty, 0);
+}
+
+function materialSoonestExpiry(mat) {
+  const withExpiry = mat.batches.filter((b) => b.expiry).sort((a, b) => a.expiry.localeCompare(b.expiry));
+  return withExpiry.length ? withExpiry[0].expiry : null;
+}
+
+function materialStatus(mat) {
+  const total = materialTotalQty(mat);
+  const understock = mat.minQty > 0 && total < mat.minQty;
+  const soonest = materialSoonestExpiry(mat);
+  let expiryState = "ok";
+  if (soonest) {
+    const du = daysUntil(soonest);
+    if (du < 0) expiryState = "expired";
+    else if (du <= EXPIRY_WARNING_DAYS) expiryState = "soon";
+  }
+  return { total, understock, soonest, expiryState };
+}
+
+function colorFor(members, id) {
+  const m = (members || []).find((x) => x.id === id);
+  if (m && m.color) return m.color;
+  const base = MEMBERS_BASE.find((x) => x.id === id);
+  return base ? base.color : "#8B8578";
+}
+
+function shortMemberName(members, member) {
+  const first = member.name.split(" ")[0];
+  const sameFirst = members.filter((m) => m.name.split(" ")[0] === first);
+  if (sameFirst.length <= 1) return first;
+  const rest = member.name.slice(first.length).trim();
+  for (let len = 1; len <= rest.length; len++) {
+    const candidate = first + " " + rest.slice(0, len) + ".";
+    const collision = sameFirst.some((m) => {
+      if (m.id === member.id) return false;
+      const r2 = m.name.slice(m.name.split(" ")[0].length).trim();
+      return r2.slice(0, len).toLowerCase() === rest.slice(0, len).toLowerCase();
+    });
+    if (!collision) return candidate;
+  }
+  return member.name;
+}
+
+function availablePeopleForDay(data, dateStr) {
+  const list = [];
+  data.members.forEach((member) => {
+    const e = (data.availability[member.id] || {})[dateStr];
+    if (e && (e.status === "verfuegbar" || e.status === "vielleicht")) {
+      list.push({ member, status: e.status, hasLeadTime: !!e.leadTimeHours });
+    }
+  });
+  // Bereits zugewiesene Personen immer mit anzeigen, auch falls die Verfügbarkeit
+  // nachträglich entfernt wurde (damit die Zuweisung sichtbar bleibt und man sie
+  // wieder entfernen kann).
+  const primaryId = data.assignments[dateStr];
+  const backupId = (data.backupAssignments || {})[dateStr];
+  [primaryId, backupId].forEach((pid) => {
+    if (pid && !list.find((x) => x.member.id === pid)) {
+      const m = data.members.find((x) => x.id === pid);
+      if (m) list.push({ member: m, status: null, hasLeadTime: false });
+    }
+  });
+  return list;
+}
+
+/* ---------- API-Client (Cloudflare Pages Functions + KV statt Claude-Artifact-DB) ---------- */
+
+let currentAppPassword = "";
+
+function apiHeaders() {
+  const h = { "Content-Type": "application/json" };
+  if (currentAppPassword) h["X-App-Password"] = currentAppPassword;
+  return h;
+}
+
+async function apiGetDoc(path) {
+  const res = await fetch("/api/doc?path=" + encodeURIComponent(path), { headers: apiHeaders() });
+  if (!res.ok) throw new Error("API-Fehler beim Laden (" + res.status + ")");
+  return res.json();
+}
+async function apiSetDoc(path, data) {
+  const res = await fetch("/api/doc?path=" + encodeURIComponent(path), {
+    method: "PUT",
+    headers: apiHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    let detail = "";
+    try { const errBody = await res.json(); detail = errBody && errBody.error ? " – " + errBody.error : ""; } catch (e) {}
+    throw new Error("API-Fehler beim Speichern (" + res.status + ")" + detail);
+  }
+  return res.json();
+}
+async function apiDeleteDoc(path) {
+  const res = await fetch("/api/doc?path=" + encodeURIComponent(path), { method: "DELETE", headers: apiHeaders() });
+  if (!res.ok) throw new Error("API-Fehler beim Löschen (" + res.status + ")");
+  return res.json();
+}
+async function apiGetCollection(path) {
+  const res = await fetch("/api/collection?path=" + encodeURIComponent(path), { headers: apiHeaders() });
+  if (!res.ok) throw new Error("API-Fehler beim Laden (" + res.status + ")");
+  return res.json();
+}
+
+const SYNC_POLL_MS = 6000;
+
+function resizeImageFile(file, maxDim) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Lesefehler"));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("Bildfehler"));
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) { height = Math.round(height * (maxDim / width)); width = maxDim; }
+          else { width = Math.round(width * (maxDim / height)); height = maxDim; }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", 0.65));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function asciiSafe(s) {
+  if (!s) return "";
+  return String(s)
+    .replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue")
+    .replace(/Ä/g, "Ae").replace(/Ö/g, "Oe").replace(/Ü/g, "Ue")
+    .replace(/ß/g, "ss")
+    .replace(/[„"]/g, '"')
+    .replace(/[–—]/g, "-")
+    .replace(/↔/g, "<->")
+    .replace(/¼/g, "1/4").replace(/½/g, "1/2").replace(/¾/g, "3/4")
+    .replace(/[^\x00-\x7E]/g, "?");
+}
+
+function buildMaterialReportPdf(materials) {
+  const JsPDFCtor = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
+  const doc = new JsPDFCtor({ unit: "mm", format: "a4" });
+  const marginX = 14;
+  let y = 18;
+  doc.setFontSize(16);
+  doc.text("Team Thoraxorgane - Materialbericht", marginX, y);
+  y += 7;
+  doc.setFontSize(10);
+  doc.text("Stand: " + new Date().toLocaleString("de-DE"), marginX, y);
+  y += 9;
+
+  const colX = [marginX, marginX + 68, marginX + 100, marginX + 118, marginX + 140, marginX + 168];
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "bold");
+  ["Artikel", "Verwendung", "Bestand", "Mind.", "MHD", "Status"].forEach((h, i) => doc.text(h, colX[i], y));
+  doc.setFont("helvetica", "normal");
+  y += 2;
+  doc.line(marginX, y, 196, y);
+  y += 5;
+
+  materials.forEach((m) => {
+    const status = materialStatus(m);
+    if (y > 280) { doc.addPage(); y = 18; }
+    doc.setFontSize(8.5);
+    doc.text(asciiSafe(m.name).slice(0, 40), colX[0], y);
+    doc.text(asciiSafe(USAGE_LABELS[m.usage] || "-"), colX[1], y);
+    doc.text(String(status.total), colX[2], y);
+    doc.text(String(m.minQty || 0), colX[3], y);
+    doc.text(status.soonest || "-", colX[4], y);
+    let statusLabel = "OK";
+    if (status.understock) statusLabel = "Nachbestellen";
+    else if (status.expiryState === "expired") statusLabel = "Abgelaufen";
+    else if (status.expiryState === "soon") statusLabel = "Laeuft bald ab";
+    doc.text(statusLabel, colX[5], y);
+    y += 6;
+  });
+
+  return doc.output("blob");
+}
+
+function icsEscape(s) {
+  return String(s).replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
+}
+function icsDateFmt(dateStr) { return dateStr.replace(/-/g, ""); }
+
+function icsSubscribeUrl(person) {
+  if (!person) return "";
+  return window.location.origin + "/api/ical?person=" + encodeURIComponent(person.id) + "&token=" + encodeURIComponent(person.calendarToken || "");
+}
+
+function buildPersonIcs(data, personId) {
+  const understocked = data.materials.filter((m) => materialStatus(m).understock);
+  const warningLine = understocked.length > 0
+    ? "ACHTUNG: " + understocked.length + " Material(ien) aktuell unter Mindestmenge (" + understocked.map((m) => m.name).join(", ") + "). Bitte Material-Tab pruefen."
+    : "";
+
+  const primaryDates = Object.entries(data.assignments || {}).filter(([, pid]) => pid === personId).map(([ds]) => ds).sort();
+  const backupDates = Object.entries(data.backupAssignments || {}).filter(([, pid]) => pid === personId).map(([ds]) => ds).sort();
+
+  const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Team Thoraxorgane//Rufdienstplan//DE", "CALSCALE:GREGORIAN"];
+
+  function addEvent(dateStr, summary) {
+    const nextDay = addDaysStr(dateStr, 1);
+    lines.push("BEGIN:VEVENT");
+    lines.push("UID:" + dateStr + "-" + personId + "-" + summary.replace(/\s+/g, "") + "@rufdienstplan.thoraxorgane");
+    lines.push("DTSTAMP:" + icsDateFmt(todayStr()) + "T000000Z");
+    lines.push("DTSTART;VALUE=DATE:" + icsDateFmt(dateStr));
+    lines.push("DTEND;VALUE=DATE:" + icsDateFmt(nextDay));
+    lines.push("SUMMARY:" + icsEscape(summary));
+    lines.push("DESCRIPTION:" + icsEscape(warningLine || "Rufdienst Team Thoraxorgane"));
+    lines.push("END:VEVENT");
+  }
+
+  primaryDates.forEach((ds) => addEvent(ds, "Rufdienst"));
+  backupDates.forEach((ds) => addEvent(ds, "Rufdienst (Backup)"));
+
+  lines.push("END:VCALENDAR");
+  return lines.join("\r\n");
+}
+
+/* ---------- Hauptkomponente ---------- */
+
+function App() {
+  const [unlocked, setUnlocked] = useState(false);
+  const [pwInput, setPwInput] = useState("");
+  const [pwError, setPwError] = useState(false);
+
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const saveTimer = useRef(null);
+  const clickTimers = useRef({});
+
+  const [tab, setTab] = useState("uebersicht");
+  const now = new Date();
+  const [viewYear, setViewYear] = useState(now.getFullYear());
+  const [viewMonth, setViewMonth] = useState(now.getMonth());
+  const [statYear, setStatYear] = useState(now.getFullYear());
+
+  const [currentPerson, setCurrentPerson] = useState("");
+
+  const [einsatz, setEinsatz] = useState(defaultEinsatz());
+  const [materialImages, setMaterialImages] = useState({});
+
+  const localChangeFlag = useRef(false);
+  const einsatzChangeFlag = useRef(false);
+  const einsatzSaveTimer = useRef(null);
+
+  function commit(updater) {
+    localChangeFlag.current = true;
+    setData(updater);
+  }
+
+  function normalizeData(remote) {
+    let changed = false;
+    if (!remote.materials) { remote.materials = MATERIALS_SEED.map((m) => ({ ...m, batches: [] })); changed = true; }
+    remote.materials = remote.materials.map((m) => ({ usage: m.usage || null, ...m }));
+    if (!remote.members) {
+      remote.members = MEMBERS_BASE.map((m) => ({ id: m.id, name: m.name, phone: "", color: m.color, calendarToken: generateToken() }));
+      changed = true;
+    } else {
+      remote.members = remote.members.map((m) => {
+        const base = MEMBERS_BASE.find((b) => b.id === m.id);
+        const color = m.color || (base && base.color) || "#8B8578";
+        const calendarToken = m.calendarToken || generateToken();
+        if (color !== m.color || calendarToken !== m.calendarToken) changed = true;
+        return { ...m, color, calendarToken };
+      });
+    }
+    if (!remote.backupAssignments) { remote.backupAssignments = {}; changed = true; }
+    if (!remote.checklists) { remote.checklists = JSON.parse(JSON.stringify(CHECKLISTS_SEED)); changed = true; }
+    return { data: remote, changed };
+  }
+
+  // Initiales Laden von app/state
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await apiGetDoc("app/state");
+        if (cancelled) return;
+        if (res.exists) {
+          const { data: normalized, changed } = normalizeData(res.data);
+          setData(normalized);
+          if (changed) apiSetDoc("app/state", normalized).catch((e) => console.error("Backfill speichern fehlgeschlagen", e));
+        } else {
+          setData(defaultData());
+        }
+      } catch (e) {
+        console.error("Laden fehlgeschlagen", e);
+        if (!cancelled) setData(defaultData());
+      }
+      if (!cancelled) setLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Regelmäßiges Nachladen von app/state (Live-Sync per Polling, überschreibt keine lokal
+  // noch ungespeicherten Änderungen)
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      if (localChangeFlag.current) return;
+      try {
+        const res = await apiGetDoc("app/state");
+        if (res.exists) {
+          const { data: normalized, changed } = normalizeData(res.data);
+          setData(normalized);
+          if (changed) apiSetDoc("app/state", normalized).catch((e) => console.error("Backfill speichern fehlgeschlagen", e));
+        }
+      } catch (e) { console.error("Sync fehlgeschlagen", e); }
+    }, SYNC_POLL_MS);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Speichern von app/state bei lokalen Änderungen (debounced)
+  useEffect(() => {
+    if (loading || !data) return;
+    if (!localChangeFlag.current) return;
+    localChangeFlag.current = false;
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      apiSetDoc("app/state", data).catch((e) => console.error("Speichern fehlgeschlagen", e));
+    }, 400);
+    return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
+  }, [data, loading]);
+
+  // Material-Bilder laden + regelmäßig aktualisieren
+  useEffect(() => {
+    let cancelled = false;
+    async function loadImages() {
+      try {
+        const res = await apiGetCollection("materials");
+        if (cancelled) return;
+        const images = {};
+        (res.docs || []).forEach((d) => { if (d.data && d.data.imageDataUrl) images[d.id] = d.data.imageDataUrl; });
+        setMaterialImages(images);
+      } catch (e) { console.error("Bild-Sync fehlgeschlagen", e); }
+    }
+    loadImages();
+    const interval = setInterval(loadImages, SYNC_POLL_MS + 2000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, []);
+
+  // Einsatz-Dokument laden + regelmäßig aktualisieren
+  useEffect(() => {
+    let cancelled = false;
+    async function loadEinsatz() {
+      if (einsatzChangeFlag.current) return;
+      try {
+        const res = await apiGetDoc("einsatz/current");
+        if (cancelled) return;
+        setEinsatz(res.exists ? { organ: res.data.organ || null, itemStatus: res.data.itemStatus || {} } : defaultEinsatz());
+      } catch (e) { console.error("Einsatz-Sync fehlgeschlagen", e); }
+    }
+    loadEinsatz();
+    const interval = setInterval(loadEinsatz, SYNC_POLL_MS);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, []);
+
+  function commitEinsatz(updater) {
+    einsatzChangeFlag.current = true;
+    setEinsatz(updater);
+  }
+
+  useEffect(() => {
+    if (!einsatzChangeFlag.current) return;
+    einsatzChangeFlag.current = false;
+    if (einsatzSaveTimer.current) clearTimeout(einsatzSaveTimer.current);
+    einsatzSaveTimer.current = setTimeout(() => {
+      apiSetDoc("einsatz/current", einsatz).catch((e) => console.error("Einsatz speichern fehlgeschlagen", e));
+    }, 300);
+    return () => { if (einsatzSaveTimer.current) clearTimeout(einsatzSaveTimer.current); };
+  }, [einsatz]);
+
+  /* ---------- Mutationen ---------- */
+
+  function setAvailabilityDay(personId, dateStr, status) {
+    commit((prev) => {
+      const availability = { ...prev.availability };
+      const personAvail = { ...(availability[personId] || {}) };
+      if (status === null) {
+        delete personAvail[dateStr];
+      } else {
+        personAvail[dateStr] = { ...(personAvail[dateStr] || {}), status };
+      }
+      availability[personId] = personAvail;
+      return { ...prev, availability };
+    });
+  }
+
+  function setWeekAvailable(personId, mondayStr) {
+    commit((prev) => {
+      const availability = { ...prev.availability };
+      const personAvail = { ...(availability[personId] || {}) };
+      weekFromMonday(mondayStr).forEach((ds) => {
+        personAvail[ds] = { ...(personAvail[ds] || {}), status: "verfuegbar" };
+      });
+      availability[personId] = personAvail;
+      return { ...prev, availability };
+    });
+  }
+
+  function setLeadTime(personId, dateStr, hours) {
+    commit((prev) => {
+      const availability = { ...prev.availability };
+      const personAvail = { ...(availability[personId] || {}) };
+      const entry = { ...(personAvail[dateStr] || {}) };
+      if (hours === null) delete entry.leadTimeHours;
+      else entry.leadTimeHours = hours;
+      if (!entry.status && !entry.leadTimeHours) delete personAvail[dateStr];
+      else personAvail[dateStr] = entry;
+      availability[personId] = personAvail;
+      return { ...prev, availability };
+    });
+  }
+
+  function updatePhone(personId, phone) {
+    commit((prev) => ({
+      ...prev,
+      members: prev.members.map((m) => (m.id === personId ? { ...m, phone } : m)),
+    }));
+  }
+
+  function updateMemberName(personId, name) {
+    commit((prev) => ({
+      ...prev,
+      members: prev.members.map((m) => (m.id === personId ? { ...m, name } : m)),
+    }));
+  }
+
+  function updateMemberColor(personId, color) {
+    commit((prev) => ({
+      ...prev,
+      members: prev.members.map((m) => (m.id === personId ? { ...m, color } : m)),
+    }));
+  }
+
+  function handleAvailClick(personId, dateStr) {
+    if (!personId) return;
+    if (clickTimers.current[dateStr]) {
+      clearTimeout(clickTimers.current[dateStr]);
+      delete clickTimers.current[dateStr];
+      return;
+    }
+    clickTimers.current[dateStr] = setTimeout(() => {
+      delete clickTimers.current[dateStr];
+      if (dowMon0(dateStr) === 0) {
+        setWeekAvailable(personId, dateStr);
+      } else {
+        commit((prev) => {
+          const availability = { ...prev.availability };
+          const personAvail = { ...(availability[personId] || {}) };
+          const cur = personAvail[dateStr];
+          const curStatus = cur ? cur.status : null;
+          const nextStatus = curStatus === "verfuegbar" ? "vielleicht" : curStatus === "vielleicht" ? null : "verfuegbar";
+          if (nextStatus === null) {
+            delete personAvail[dateStr];
+          } else {
+            personAvail[dateStr] = { ...(cur || {}), status: nextStatus };
+          }
+          availability[personId] = personAvail;
+          return { ...prev, availability };
+        });
+      }
+    }, 260);
+  }
+
+  function handleAvailDoubleClick(personId, dateStr) {
+    if (!personId) return;
+    if (clickTimers.current[dateStr]) {
+      clearTimeout(clickTimers.current[dateStr]);
+      delete clickTimers.current[dateStr];
+    }
+    setAvailabilityDay(personId, dateStr, null);
+  }
+
+  function handleLeadTimeClick(personId, dateStr) {
+    if (!personId) return;
+    const cur = (data.availability[personId] || {})[dateStr];
+    const curVal = cur && cur.leadTimeHours ? String(cur.leadTimeHours) : "";
+    const input = window.prompt(`Vorlaufzeit für ${dateStr} in Stunden.\nLeer lassen oder 0 zum Entfernen.`, curVal);
+    if (input === null) return;
+    const trimmed = input.trim();
+    if (trimmed === "") { setLeadTime(personId, dateStr, null); return; }
+    const num = Number(trimmed.replace(",", "."));
+    if (isNaN(num) || num <= 0) { setLeadTime(personId, dateStr, null); return; }
+    setLeadTime(personId, dateStr, num);
+  }
+
+  function setDayRole(dateStr, personId, role) {
+    const wholeWeek = dowMon0(dateStr) === 0;
+    const datesToApply = wholeWeek ? weekFromMonday(dateStr) : [dateStr];
+    commit((prev) => {
+      const assignments = { ...prev.assignments };
+      const backupAssignments = { ...prev.backupAssignments };
+      let primary = assignments[dateStr] || null;
+      let backup = backupAssignments[dateStr] || null;
+      if (role === "primary") {
+        if (primary === personId) {
+          primary = null;
+        } else {
+          if (backup === personId) backup = null;
+          primary = personId;
+        }
+      } else {
+        if (backup === personId) {
+          backup = null;
+        } else if (primary === personId) {
+          return prev; // eine Person kann nicht gleichzeitig Primär und Backup sein
+        } else {
+          backup = personId;
+        }
+      }
+      datesToApply.forEach((ds) => {
+        if (primary) assignments[ds] = primary; else delete assignments[ds];
+        if (backup) backupAssignments[ds] = backup; else delete backupAssignments[ds];
+      });
+      return { ...prev, assignments, backupAssignments };
+    });
+  }
+
+  function goPrevMonth() {
+    setViewMonth((m) => { if (m === 0) { setViewYear((y) => y - 1); return 11; } return m - 1; });
+  }
+  function goNextMonth() {
+    setViewMonth((m) => { if (m === 11) { setViewYear((y) => y + 1); return 0; } return m + 1; });
+  }
+
+  function addBatch(materialId, qty, expiry, lot) {
+    commit((prev) => ({
+      ...prev,
+      materials: prev.materials.map((m) =>
+        m.id === materialId
+          ? { ...m, batches: [...m.batches, { id: newId(), qty, expiry: expiry || null, lot: lot || "" }] }
+          : m
+      ),
+    }));
+  }
+
+  function consumeMaterialQty(materialId, qty) {
+    commit((prev) => ({
+      ...prev,
+      materials: prev.materials.map((m) => {
+        if (m.id !== materialId) return m;
+        let remaining = qty;
+        const sorted = [...m.batches].sort((a, b) => {
+          if (!a.expiry && !b.expiry) return 0;
+          if (!a.expiry) return 1;
+          if (!b.expiry) return -1;
+          return a.expiry.localeCompare(b.expiry);
+        });
+        const newBatches = [];
+        for (const b of sorted) {
+          if (remaining <= 0) { newBatches.push(b); continue; }
+          if (b.qty <= remaining) { remaining -= b.qty; }
+          else { newBatches.push({ ...b, qty: b.qty - remaining }); remaining = 0; }
+        }
+        return { ...m, batches: newBatches };
+      }),
+    }));
+  }
+
+  function deleteBatch(materialId, batchId) {
+    commit((prev) => ({
+      ...prev,
+      materials: prev.materials.map((m) =>
+        m.id === materialId ? { ...m, batches: m.batches.filter((b) => b.id !== batchId) } : m
+      ),
+    }));
+  }
+
+  function updateMinQty(materialId, minQty) {
+    commit((prev) => ({
+      ...prev,
+      materials: prev.materials.map((m) => (m.id === materialId ? { ...m, minQty } : m)),
+    }));
+  }
+
+  function addCustomMaterial(name, refNr, minQty) {
+    commit((prev) => ({
+      ...prev,
+      materials: [...prev.materials, { id: newId(), name, refNr, minQty, batches: [] }],
+    }));
+  }
+
+  function deleteMaterial(materialId) {
+    commit((prev) => ({ ...prev, materials: prev.materials.filter((m) => m.id !== materialId) }));
+  }
+
+  function updateMaterialName(materialId, name) {
+    commit((prev) => ({
+      ...prev,
+      materials: prev.materials.map((m) => (m.id === materialId ? { ...m, name } : m)),
+    }));
+  }
+
+  function updateMaterialUsage(materialId, usage) {
+    commit((prev) => ({
+      ...prev,
+      materials: prev.materials.map((m) => (m.id === materialId ? { ...m, usage } : m)),
+    }));
+  }
+
+  async function uploadMaterialImage(materialId, file) {
+    if (!file) return;
+    try {
+      const dataUrl = await resizeImageFile(file, 320);
+      await apiSetDoc("materials/" + materialId, { imageDataUrl: dataUrl });
+      setMaterialImages((prev) => ({ ...prev, [materialId]: dataUrl }));
+    } catch (e) {
+      console.error("Bild-Upload fehlgeschlagen", e);
+      window.alert("Bild konnte nicht gespeichert werden: " + (e && e.message ? e.message : "unbekannter Fehler"));
+    }
+  }
+
+  function removeMaterialImage(materialId) {
+    apiDeleteDoc("materials/" + materialId).catch((e) => console.error(e));
+    setMaterialImages((prev) => {
+      const next = { ...prev };
+      delete next[materialId];
+      return next;
+    });
+  }
+
+  function updateChecklistItem(listKey, itemId, patch) {
+    commit((prev) => {
+      const checklists = { ...prev.checklists };
+      checklists[listKey] = checklists[listKey].map((it) => (it.id === itemId ? { ...it, ...patch } : it));
+      return { ...prev, checklists };
+    });
+  }
+  function addChecklistItem(listKey, label) {
+    commit((prev) => {
+      const checklists = { ...prev.checklists };
+      checklists[listKey] = [...checklists[listKey], checklistItem(newId(), label, null, 1)];
+      return { ...prev, checklists };
+    });
+  }
+  function removeChecklistItem(listKey, itemId) {
+    commit((prev) => {
+      const checklists = { ...prev.checklists };
+      checklists[listKey] = checklists[listKey].filter((it) => it.id !== itemId);
+      return { ...prev, checklists };
+    });
+  }
+
+  function setEinsatzOrgan(organ) {
+    commitEinsatz((prev) => ({ ...prev, organ }));
+  }
+  function setItemVariant(itemId, materialId) {
+    commitEinsatz((prev) => {
+      const itemStatus = { ...prev.itemStatus };
+      itemStatus[itemId] = { ...(itemStatus[itemId] || {}), variant: materialId };
+      return { ...prev, itemStatus };
+    });
+  }
+  function markItemsPacked(itemIds) {
+    commitEinsatz((prev) => {
+      const itemStatus = { ...prev.itemStatus };
+      itemIds.forEach((id) => { itemStatus[id] = { ...(itemStatus[id] || {}), status: "packed" }; });
+      return { ...prev, itemStatus };
+    });
+  }
+  function markItemsConsumed(items) {
+    items.forEach((it) => { if (it.materialId) consumeMaterialQty(it.materialId, it.qty); });
+    commitEinsatz((prev) => {
+      const itemStatus = { ...prev.itemStatus };
+      items.forEach((it) => { itemStatus[it.id] = { ...(itemStatus[it.id] || {}), status: "consumed" }; });
+      return { ...prev, itemStatus };
+    });
+  }
+  function resetEinsatzChecklist() {
+    if (!window.confirm("Einsatz-Checkliste wirklich zurücksetzen? Der Materialbestand bleibt unverändert.")) return;
+    commitEinsatz(defaultEinsatz());
+  }
+
+  function triggerBrowserDownload(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  }
+
+  async function exportMaterialPdf() {
+    try {
+      if (!window.jspdf && !window.jsPDF) {
+        window.alert("Die PDF-Bibliothek konnte nicht geladen werden (evtl. Internetverbindung oder Werbeblocker prüfen). Bitte Seite neu laden und erneut versuchen.");
+        return;
+      }
+      const blob = buildMaterialReportPdf(data.materials || []);
+      triggerBrowserDownload(blob, "material-bericht.pdf");
+    } catch (e) {
+      console.error("PDF-Export fehlgeschlagen", e);
+      window.alert("PDF-Export ist fehlgeschlagen: " + (e && e.message ? e.message : "unbekannter Fehler"));
+    }
+  }
+
+  async function exportPersonIcs(personId) {
+    try {
+      const ics = buildPersonIcs(data, personId);
+      const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+      triggerBrowserDownload(blob, "rufdienst-" + personId + ".ics");
+    } catch (e) {
+      console.error("ICS-Export fehlgeschlagen", e);
+      window.alert("Kalender-Export ist fehlgeschlagen.");
+    }
+  }
+
+  function resetMonthData(year, month) {
+    if (!window.confirm(`Wirklich alle Verfügbarkeiten und Zuweisungen für ${MONTH_NAMES[month]} ${year} löschen? Material und Telefonnummern bleiben unberührt.`)) return;
+    commit((prev) => {
+      const availability = {};
+      Object.entries(prev.availability).forEach(([personId, days]) => {
+        const filtered = {};
+        Object.entries(days).forEach(([ds, entry]) => {
+          const p = parseDstr(ds);
+          if (!(p.y === year && p.m === month)) filtered[ds] = entry;
+        });
+        availability[personId] = filtered;
+      });
+      const assignments = {};
+      Object.entries(prev.assignments).forEach(([ds, pid]) => {
+        const p = parseDstr(ds);
+        if (!(p.y === year && p.m === month)) assignments[ds] = pid;
+      });
+      const backupAssignments = {};
+      Object.entries(prev.backupAssignments || {}).forEach(([ds, pid]) => {
+        const p = parseDstr(ds);
+        if (!(p.y === year && p.m === month)) backupAssignments[ds] = pid;
+      });
+      return { ...prev, availability, assignments, backupAssignments };
+    });
+  }
+
+  /* ---------- abgeleitete Werte ---------- */
+
+  const weeks = useMemo(() => buildMonthGrid(viewYear, viewMonth), [viewYear, viewMonth]);
+  const holidaySet = useMemo(() => shHolidays(statYear), [statYear]);
+
+  const stats = useMemo(() => {
+    if (!data) return {};
+    const counts = {};
+    data.members.forEach((m) => (counts[m.id] = { total: 0, holiday: 0, backup: 0 }));
+    Object.entries(data.assignments).forEach(([ds, pid]) => {
+      if (ds.slice(0, 4) !== String(statYear)) return;
+      if (!counts[pid]) counts[pid] = { total: 0, holiday: 0, backup: 0 };
+      counts[pid].total++;
+      if (holidaySet.has(ds)) counts[pid].holiday++;
+    });
+    Object.entries(data.backupAssignments || {}).forEach(([ds, pid]) => {
+      if (ds.slice(0, 4) !== String(statYear)) return;
+      if (!counts[pid]) counts[pid] = { total: 0, holiday: 0, backup: 0 };
+      counts[pid].backup++;
+    });
+    return counts;
+  }, [data, statYear, holidaySet]);
+
+  const availableYears = useMemo(() => {
+    const set = new Set([now.getFullYear()]);
+    if (data) Object.keys(data.assignments).forEach((ds) => set.add(Number(ds.slice(0, 4))));
+    return Array.from(set).sort();
+  }, [data]);
+
+  /* ---------- Render: Login ---------- */
+
+  if (!unlocked) {
+    const ds = todayStr();
+    const previewPrimaryId = data ? data.assignments[ds] : null;
+    const previewBackupId = data ? (data.backupAssignments || {})[ds] : null;
+    const previewPrimary = previewPrimaryId && data ? data.members.find((m) => m.id === previewPrimaryId) : null;
+    const previewBackup = previewBackupId && data ? data.members.find((m) => m.id === previewBackupId) : null;
+    const previewLeadTime = previewPrimaryId && data ? ((data.availability[previewPrimaryId] || {})[ds] || {}).leadTimeHours : null;
+
+    return (
+      <div className="tx-app">
+          <div className="login-screen">
+          <div className="login-card">
+            <Logo size={64} />
+            <h1 className="login-title">Team Thoraxorgane</h1>
+            <p className="login-sub">Rufdienstplan</p>
+
+            {data && (
+              <div className="login-oncall-preview">
+                <div className="login-oncall-label">Heute im Rufdienst</div>
+                {previewPrimary ? (
+                  <div className="login-oncall-name" style={{ color: colorFor(data.members, previewPrimary.id) }}>{previewPrimary.name}</div>
+                ) : (
+                  <div className="login-oncall-name login-oncall-none">Niemand zugewiesen</div>
+                )}
+                {previewLeadTime ? (
+                  <div className="login-oncall-lead">⏱ Braucht {previewLeadTime} Std. Vorlaufzeit</div>
+                ) : null}
+                {previewBackup && (
+                  <div className="login-oncall-backup">Backup: {previewBackup.name}</div>
+                )}
+              </div>
+            )}
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (pwInput === PASSWORD) { currentAppPassword = pwInput; setUnlocked(true); setPwError(false); }
+                else setPwError(true);
+              }}
+            >
+              <input
+                type="password"
+                className="login-input"
+                placeholder="Passwort"
+                value={pwInput}
+                onChange={(e) => { setPwInput(e.target.value); setPwError(false); }}
+                autoFocus
+              />
+              {pwError && <p className="login-error">Falsches Passwort.</p>}
+              <button type="submit" className="btn btn-primary login-btn">Anmelden</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading || !data) {
+    return (
+      <div className="tx-app">
+          <div className="login-screen"><p className="loading-text">Lädt …</p></div>
+      </div>
+    );
+  }
+
+  /* ---------- Render: App ---------- */
+
+  return (
+    <div className="tx-app">
+      <header className="app-header">
+        <div className="header-brand">
+          <Logo size={36} />
+          <div>
+            <div className="brand-title">Team Thoraxorgane</div>
+            <div className="brand-sub">Rufdienstplan</div>
+          </div>
+        </div>
+        <nav className="tab-nav">
+          <button className={`tab-btn ${tab === "uebersicht" ? "active" : ""}`} onClick={() => setTab("uebersicht")}>Übersicht</button>
+          <button className={`tab-btn ${tab === "einsatz" ? "active" : ""}`} onClick={() => setTab("einsatz")}>Im Einsatz</button>
+          <button className={`tab-btn ${tab === "material" ? "active" : ""}`} onClick={() => setTab("material")}>Material</button>
+          <button className={`tab-btn ${tab === "verfuegbar" ? "active" : ""}`} onClick={() => setTab("verfuegbar")}>Verfügbarkeit</button>
+          <button className={`tab-btn ${tab === "admin" ? "active" : ""}`} onClick={() => setTab("admin")}>Admin</button>
+          <button className={`tab-btn ${tab === "statistik" ? "active" : ""}`} onClick={() => setTab("statistik")}>Statistik</button>
+        </nav>
+        <button
+          className="btn btn-ghost lock-btn"
+          title="Zurück zur gesperrten Startseite"
+          onClick={() => {
+            currentAppPassword = "";
+            setPwInput("");
+            setUnlocked(false);
+          }}
+        >
+          🔒 Abmelden
+        </button>
+      </header>
+
+      <main className="app-main">
+        {tab === "verfuegbar" && (
+          <VerfuegbarTab
+            data={data}
+            currentPerson={currentPerson}
+            setCurrentPerson={setCurrentPerson}
+            updatePhone={updatePhone}
+            viewYear={viewYear}
+            viewMonth={viewMonth}
+            weeks={weeks}
+            goPrevMonth={goPrevMonth}
+            goNextMonth={goNextMonth}
+            handleAvailClick={handleAvailClick}
+            handleAvailDoubleClick={handleAvailDoubleClick}
+            handleLeadTimeClick={handleLeadTimeClick}
+            exportPersonIcs={exportPersonIcs}
+          />
+        )}
+        {tab === "admin" && (
+          <AdminTab
+            data={data}
+            viewYear={viewYear}
+            viewMonth={viewMonth}
+            weeks={weeks}
+            goPrevMonth={goPrevMonth}
+            goNextMonth={goNextMonth}
+            setDayRole={setDayRole}
+            resetMonthData={resetMonthData}
+            updateMemberName={updateMemberName}
+            updateMemberColor={updateMemberColor}
+          />
+        )}
+        {tab === "uebersicht" && (
+          <UebersichtTab
+            data={data}
+            viewYear={viewYear}
+            viewMonth={viewMonth}
+            weeks={weeks}
+            goPrevMonth={goPrevMonth}
+            goNextMonth={goNextMonth}
+          />
+        )}
+        {tab === "statistik" && (
+          <StatistikTab
+            data={data}
+            statYear={statYear}
+            setStatYear={setStatYear}
+            availableYears={availableYears}
+            stats={stats}
+          />
+        )}
+        {tab === "material" && (
+          <MaterialTab
+            data={data}
+            materialImages={materialImages}
+            addBatch={addBatch}
+            consumeQty={consumeMaterialQty}
+            deleteBatch={deleteBatch}
+            updateMinQty={updateMinQty}
+            addCustomMaterial={addCustomMaterial}
+            deleteMaterial={deleteMaterial}
+            updateMaterialName={updateMaterialName}
+            updateMaterialUsage={updateMaterialUsage}
+            uploadMaterialImage={uploadMaterialImage}
+            removeMaterialImage={removeMaterialImage}
+            exportMaterialPdf={exportMaterialPdf}
+          />
+        )}
+        {tab === "einsatz" && (
+          <EinsatzTab
+            data={data}
+            einsatz={einsatz}
+            setEinsatzOrgan={setEinsatzOrgan}
+            setItemVariant={setItemVariant}
+            markItemsPacked={markItemsPacked}
+            markItemsConsumed={markItemsConsumed}
+            resetEinsatzChecklist={resetEinsatzChecklist}
+            updateChecklistItem={updateChecklistItem}
+            addChecklistItem={addChecklistItem}
+            removeChecklistItem={removeChecklistItem}
+          />
+        )}
+      </main>
+    </div>
+  );
+}
+
+/* ---------- Tab: Verfügbarkeit ---------- */
+
+function VerfuegbarTab({ data, currentPerson, setCurrentPerson, updatePhone, viewYear, viewMonth, weeks, goPrevMonth, goNextMonth, handleAvailClick, handleAvailDoubleClick, handleLeadTimeClick, exportPersonIcs }) {
+  const person = data.members.find((m) => m.id === currentPerson);
+  const today = todayStr();
+
+  return (
+    <div className="tab-content">
+      <div className="panel">
+        <div className="person-picker">
+          <label className="field-label">Ich bin</label>
+          <select className="select" value={currentPerson} onChange={(e) => setCurrentPerson(e.target.value)}>
+            <option value="">– Name wählen –</option>
+            {data.members.map((m) => (<option key={m.id} value={m.id}>{m.name}</option>))}
+          </select>
+          {person && (
+            <div className="phone-field">
+              <label className="field-label">Telefonnummer</label>
+              <input
+                type="tel"
+                className="text-input"
+                placeholder="z. B. 0170 1234567"
+                value={person.phone}
+                onChange={(e) => updatePhone(person.id, e.target.value)}
+              />
+            </div>
+          )}
+          {person && (
+            <button className="btn btn-ghost" onClick={() => exportPersonIcs(person.id)}>
+              <Download size={14} /> Meine Rufdienste als Kalender (.ics)
+            </button>
+          )}
+        </div>
+      </div>
+
+      {!currentPerson ? (
+        <p className="hint-text">Bitte wähle oben deinen Namen, um deine Verfügbarkeit einzutragen.</p>
+      ) : (
+        <>
+          <p className="hint-text">
+            Klick auf <strong>Montag</strong> markiert die ganze Woche als verfügbar. Klick auf einen einzelnen Tag wechselt zwischen <strong>Verfügbar</strong> und <strong>Vielleicht</strong>. Doppelklick löscht den Eintrag. Über das Uhr-Symbol kannst du eine nötige Vorlaufzeit hinterlegen.
+          </p>
+          <MonthNav year={viewYear} month={viewMonth} onPrev={goPrevMonth} onNext={goNextMonth} />
+          <CalendarShell
+            weeks={weeks}
+            viewMonth={viewMonth}
+            renderCell={(dateStr, inMonth) => {
+              const entry = (data.availability[currentPerson] || {})[dateStr];
+              const status = entry ? entry.status : null;
+              const leadTime = entry ? entry.leadTimeHours : null;
+              const isToday = dateStr === today;
+              const isScheduled = data.assignments[dateStr] === currentPerson;
+              const isScheduledBackup = (data.backupAssignments || {})[dateStr] === currentPerson;
+              return (
+                <div
+                  className={`cell ${inMonth ? "" : "cell-out"} ${isToday ? "cell-today" : ""} status-${status || "none"} ${leadTime ? "cell-leadwarn" : ""} ${isScheduled ? "cell-scheduled" : ""}`}
+                  onClick={() => handleAvailClick(currentPerson, dateStr)}
+                  onDoubleClick={() => handleAvailDoubleClick(currentPerson, dateStr)}
+                >
+                  <div className="cell-top">
+                    <span className="cell-daynum">{parseDstr(dateStr).d}</span>
+                    <button
+                      className="lead-btn"
+                      onClick={(e) => { e.stopPropagation(); handleLeadTimeClick(currentPerson, dateStr); }}
+                      title="Vorlaufzeit angeben"
+                    >
+                      <Clock size={12} />
+                    </button>
+                  </div>
+                  {status && <span className="status-pill">{status === "verfuegbar" ? "Verfügbar" : "Vielleicht"}</span>}
+                  {isScheduled && <span className="scheduled-tag">📌 Rufdienst eingeplant</span>}
+                  {isScheduledBackup && <span className="scheduled-tag scheduled-tag-backup">📌 Backup eingeplant</span>}
+                  {leadTime ? <span className="leadtime-tag">⏱ {leadTime} Std. Vorlauf</span> : null}
+                </div>
+              );
+            }}
+          />
+          <Legend />
+
+          <div className="ical-subscribe-panel">
+            <h3 className="ical-subscribe-title">Eigenen Rufdienst-Kalender abonnieren</h3>
+            <p className="hint-text">
+              Damit dein Kalenderprogramm (Apple Kalender, Google Kalender, Outlook …) deine Rufdienste automatisch anzeigt und aktuell hält, kannst du die folgende Adresse dort als Kalender-Abo hinzufügen.
+            </p>
+            <div className="ical-url-row">
+              <input className="text-input ical-url-input" readOnly value={icsSubscribeUrl(person)} onClick={(e) => e.target.select()} />
+              <a className="btn btn-ghost" href={icsSubscribeUrl(person).replace(/^https?:\/\//, "webcal://")}>Abonnieren</a>
+            </div>
+            <button className="btn btn-ghost" onClick={() => exportPersonIcs(currentPerson)}>
+              <Download size={14} /> stattdessen einmalig als Datei herunterladen
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ---------- Tab: Admin ---------- */
+
+function AdminTab({ data, viewYear, viewMonth, weeks, goPrevMonth, goNextMonth, setDayRole, resetMonthData, updateMemberName, updateMemberColor }) {
+  const today = todayStr();
+  const [showPeople, setShowPeople] = useState(false);
+  const [nameDrafts, setNameDrafts] = useState({});
+
+  function nameValue(m) {
+    return nameDrafts[m.id] !== undefined ? nameDrafts[m.id] : m.name;
+  }
+  function commitName(m) {
+    const val = (nameDrafts[m.id] !== undefined ? nameDrafts[m.id] : m.name).trim();
+    if (val && val !== m.name) updateMemberName(m.id, val);
+    setNameDrafts((d) => { const n = { ...d }; delete n[m.id]; return n; });
+  }
+
+  return (
+    <div className="tab-content">
+      <p className="hint-text">
+        Klick auf einen Namen an einem <strong>Montag</strong> weist ihn für die <strong>ganze Woche</strong> als Rufdienst zu. Klick auf einen Namen an einem <strong>anderen Tag</strong> gilt nur für diesen einen Tag (z. B. um das Wochenende an jemand anderen zu vergeben). <strong>Linksklick</strong> = Primär, <strong>Rechtsklick</strong> = Backup. Nochmaliger Klick entfernt die Zuweisung wieder. Es werden nur Personen angezeigt, die für den jeweiligen Tag Verfügbarkeit gemeldet haben.
+      </p>
+
+      <div className="legend-row">
+        <span className="legend-chip"><span className="legend-dot legend-dot-verf"></span>Verfügbar</span>
+        <span className="legend-chip"><span className="legend-dot legend-dot-viell"></span>Vielleicht</span>
+        <span className="legend-chip"><span className="assign-role-tag assign-role-primary">P</span> Primär</span>
+        <span className="legend-chip"><span className="assign-role-tag assign-role-backup">B</span> Backup</span>
+        <span className="legend-chip">⏱ Vorlaufzeit gemeldet</span>
+      </div>
+
+      <MonthNav year={viewYear} month={viewMonth} onPrev={goPrevMonth} onNext={goNextMonth} />
+
+      <CalendarShell
+        weeks={weeks}
+        viewMonth={viewMonth}
+        renderCell={(dateStr, inMonth) => {
+          const isMon = dowMon0(dateStr) === 0;
+          const primaryId = data.assignments[dateStr];
+          const backupId = (data.backupAssignments || {})[dateStr];
+          const available = availablePeopleForDay(data, dateStr);
+          const isToday = dateStr === today;
+          return (
+            <div className={`cell cell-admin ${inMonth ? "" : "cell-out"} ${isToday ? "cell-today" : ""} ${isMon ? "cell-admin-monday" : ""}`}>
+              <div className="cell-top">
+                <span className="cell-daynum">{parseDstr(dateStr).d}</span>
+                {isMon && <span className="admin-week-hint" title="Klick hier wirkt auf die ganze Woche">Wo</span>}
+              </div>
+              <div className="admin-chip-list">
+                {available.length === 0 && <span className="admin-no-avail">–</span>}
+                {available.map(({ member, status, hasLeadTime }) => {
+                  const isPrimary = primaryId === member.id;
+                  const isBackup = backupId === member.id;
+                  return (
+                    <button
+                      key={member.id}
+                      type="button"
+                      className={`admin-mini-chip ${status ? "admin-mini-chip-" + status : ""} ${isPrimary ? "admin-mini-chip-primary" : ""} ${isBackup ? "admin-mini-chip-backup" : ""}`}
+                      style={isPrimary || isBackup ? { borderColor: colorFor(data.members, member.id) } : {}}
+                      onClick={(e) => { e.stopPropagation(); setDayRole(dateStr, member.id, "primary"); }}
+                      onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setDayRole(dateStr, member.id, "backup"); }}
+                      title={`${member.name}${isMon ? " – wirkt auf die ganze Woche" : ""}`}
+                    >
+                      {shortMemberName(data.members, member)}
+                      {isPrimary && <span className="admin-role-dot admin-role-dot-p">P</span>}
+                      {isBackup && <span className="admin-role-dot admin-role-dot-b">B</span>}
+                      {hasLeadTime && <span className="admin-lead-dot">⏱</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        }}
+      />
+
+      <button className="btn btn-ghost reset-btn" onClick={() => resetMonthData(viewYear, viewMonth)}>
+        <RotateCcw size={14} /> Daten in {MONTH_NAMES[viewMonth]} {viewYear} zurücksetzen
+      </button>
+
+      <div className="people-manage-panel">
+        <button className="btn btn-ghost" onClick={() => setShowPeople((s) => !s)}>
+          {showPeople ? "Personen ausblenden" : "Namen & Farben verwalten"}
+        </button>
+        {showPeople && (
+          <div className="people-manage-list">
+            {data.members.map((m) => (
+              <div className="people-manage-row" key={m.id}>
+                <input
+                  type="color"
+                  className="people-color-input"
+                  value={m.color || "#8B8578"}
+                  onChange={(e) => updateMemberColor(m.id, e.target.value)}
+                  title="Farbe ändern"
+                />
+                <input
+                  className="text-input people-name-input"
+                  value={nameValue(m)}
+                  onChange={(e) => setNameDrafts((d) => ({ ...d, [m.id]: e.target.value }))}
+                  onBlur={() => commitName(m)}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.currentTarget.blur(); } }}
+                />
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Tab: Übersicht ---------- */
+
+function UebersichtTab({ data, viewYear, viewMonth, weeks, goPrevMonth, goNextMonth }) {
+  const today = todayStr();
+  const todaysAssignedId = data.assignments[today];
+  const todaysBackupId = (data.backupAssignments || {})[today];
+  const todaysMember = todaysAssignedId ? data.members.find((m) => m.id === todaysAssignedId) : null;
+  const todaysBackupMember = todaysBackupId ? data.members.find((m) => m.id === todaysBackupId) : null;
+  const todaysAvail = todaysAssignedId ? (data.availability[todaysAssignedId] || {})[today] : null;
+  const todaysLeadTime = todaysAvail ? todaysAvail.leadTimeHours : null;
+  const telHref = todaysMember && todaysMember.phone ? `tel:${todaysMember.phone.replace(/[^0-9+]/g, "")}` : null;
+  const backupTelHref = todaysBackupMember && todaysBackupMember.phone ? `tel:${todaysBackupMember.phone.replace(/[^0-9+]/g, "")}` : null;
+  const weekdayLabel = WEEKDAY_FULL[dowMon0(today)];
+  const { d } = parseDstr(today);
+
+  return (
+    <div className="tab-content">
+      <div className="today-banner" style={{ borderColor: todaysAssignedId ? colorFor(data.members, todaysAssignedId) : "var(--line)" }}>
+        <div className="today-date">{weekdayLabel}, {d}. {MONTH_NAMES[parseDstr(today).m]}</div>
+        <div className="today-label">Heute im Rufdienst</div>
+        {todaysMember ? (
+          <>
+            <div className="today-name" style={{ color: colorFor(data.members, todaysAssignedId) }}>{todaysMember.name}</div>
+            {todaysLeadTime ? (
+              <div className="today-leadwarn">⏱ Braucht {todaysLeadTime} Std. Vorlaufzeit</div>
+            ) : null}
+            {telHref ? (
+              <a className="btn btn-call" href={telHref}><Phone size={16} /> Anrufen</a>
+            ) : (
+              <div className="no-phone-note">Keine Telefonnummer hinterlegt</div>
+            )}
+          </>
+        ) : (
+          <div className="today-name today-none">Niemand zugewiesen</div>
+        )}
+        {todaysBackupMember && (
+          <div className="today-backup-block">
+            <div className="today-backup-label">Backup</div>
+            <div className="today-backup-name" style={{ color: colorFor(data.members, todaysBackupId) }}>{todaysBackupMember.name}</div>
+            {backupTelHref ? (
+              <a className="btn btn-ghost btn-call-backup" href={backupTelHref}><Phone size={14} /> Backup anrufen</a>
+            ) : (
+              <div className="no-phone-note">Keine Telefonnummer hinterlegt</div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <MonthNav year={viewYear} month={viewMonth} onPrev={goPrevMonth} onNext={goNextMonth} />
+      <CalendarShell
+        weeks={weeks}
+        viewMonth={viewMonth}
+        renderCell={(dateStr, inMonth) => {
+          const assignedId = data.assignments[dateStr];
+          const backupId = (data.backupAssignments || {})[dateStr];
+          const assignedMember = assignedId ? data.members.find((m) => m.id === assignedId) : null;
+          const backupMember = backupId ? data.members.find((m) => m.id === backupId) : null;
+          const availEntry = assignedId ? (data.availability[assignedId] || {})[dateStr] : null;
+          const leadTime = availEntry ? availEntry.leadTimeHours : null;
+          const isToday = dateStr === today;
+          return (
+            <div
+              className={`cell cell-readonly ${inMonth ? "" : "cell-out"} ${isToday ? "cell-today" : ""} ${leadTime ? "cell-leadwarn" : ""}`}
+              style={{ borderLeftColor: assignedId ? colorFor(data.members, assignedId) : "transparent" }}
+            >
+              <span className="cell-daynum">{parseDstr(dateStr).d}</span>
+              {isToday && <span className="today-tag">HEUTE</span>}
+              {assignedMember && <span className="assigned-name" style={{ color: colorFor(data.members, assignedId) }}>{assignedMember.name}</span>}
+              {backupMember && <span className="assigned-backup" style={{ color: colorFor(data.members, backupId) }}>Backup: {backupMember.name}</span>}
+              {leadTime ? <span className="leadtime-tag">⏱ {leadTime} Std.</span> : null}
+            </div>
+          );
+        }}
+      />
+
+      <div className="legend-row">
+        {data.members.map((m) => (
+          <span key={m.id} className="legend-chip">
+            <span className="legend-dot" style={{ background: colorFor(data.members, m.id) }}></span>{m.name}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Tab: Statistik ---------- */
+
+function StatistikTab({ data, statYear, setStatYear, availableYears, stats }) {
+  return (
+    <div className="tab-content">
+      <div className="panel">
+        <label className="field-label">Jahr</label>
+        <select className="select" value={statYear} onChange={(e) => setStatYear(Number(e.target.value))}>
+          {availableYears.map((y) => (<option key={y} value={y}>{y}</option>))}
+        </select>
+      </div>
+
+      <div className="stats-table-wrap">
+        <table className="stats-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Diensttage {statYear}</th>
+              <th>davon an Feiertagen</th>
+              <th>Backup-Tage</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.members.map((m) => {
+              const s = stats[m.id] || { total: 0, holiday: 0, backup: 0 };
+              return (
+                <tr key={m.id}>
+                  <td style={{ color: colorFor(data.members, m.id) }}>{m.name}</td>
+                  <td>{s.total}</td>
+                  <td>{s.holiday > 0 ? `${s.holiday}` : "–"}</td>
+                  <td>{s.backup > 0 ? `${s.backup}` : "–"}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Tab: Material ---------- */
+
+function MaterialTab({ data, materialImages, addBatch, consumeQty, deleteBatch, updateMinQty, addCustomMaterial, deleteMaterial, updateMaterialName, updateMaterialUsage, uploadMaterialImage, removeMaterialImage, exportMaterialPdf }) {
+  const [expanded, setExpanded] = useState({});
+  const [batchForm, setBatchForm] = useState(null);
+  const [batchQty, setBatchQty] = useState("");
+  const [batchExpiry, setBatchExpiry] = useState("");
+  const [batchLot, setBatchLot] = useState("");
+  const [consumeForm, setConsumeForm] = useState(null);
+  const [consumeQtyInput, setConsumeQtyInput] = useState("");
+  const [onlyWarnings, setOnlyWarnings] = useState(false);
+  const [showAddMaterial, setShowAddMaterial] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newRef, setNewRef] = useState("");
+  const [newMin, setNewMin] = useState("");
+  const [nameEdit, setNameEdit] = useState(null);
+  const [nameEditValue, setNameEditValue] = useState("");
+  const [exporting, setExporting] = useState(false);
+
+  const rows = useMemo(() => data.materials.map((m) => ({ mat: m, status: materialStatus(m) })), [data.materials]);
+
+  const understockCount = rows.filter((r) => r.status.understock).length;
+  const expiredCount = rows.filter((r) => r.status.expiryState === "expired").length;
+  const soonCount = rows.filter((r) => r.status.expiryState === "soon").length;
+  const hasWarnings = understockCount > 0 || expiredCount > 0 || soonCount > 0;
+
+  const visibleRows = onlyWarnings
+    ? rows.filter((r) => r.status.understock || r.status.expiryState !== "ok")
+    : rows;
+
+  function toggleExpand(id) { setExpanded((e) => ({ ...e, [id]: !e[id] })); }
+
+  function openBatchForm(id) { setBatchForm(id); setBatchQty(""); setBatchExpiry(""); setBatchLot(""); setConsumeForm(null); }
+  function submitBatchForm(id) {
+    const qty = Number(batchQty);
+    if (!qty || qty <= 0) return;
+    addBatch(id, qty, batchExpiry || null, batchLot);
+    setBatchForm(null);
+  }
+
+  function openConsumeForm(id) { setConsumeForm(id); setConsumeQtyInput(""); setBatchForm(null); }
+  function submitConsumeForm(id) {
+    const qty = Number(consumeQtyInput);
+    if (!qty || qty <= 0) return;
+    consumeQty(id, qty);
+    setConsumeForm(null);
+  }
+
+  function submitNewMaterial() {
+    if (!newName.trim()) return;
+    addCustomMaterial(newName.trim(), newRef.trim(), Number(newMin) || 0);
+    setNewName(""); setNewRef(""); setNewMin(""); setShowAddMaterial(false);
+  }
+
+  function startNameEdit(mat) { setNameEdit(mat.id); setNameEditValue(mat.name); }
+  function submitNameEdit(id) {
+    if (nameEditValue.trim()) updateMaterialName(id, nameEditValue.trim());
+    setNameEdit(null);
+  }
+
+  async function handlePdfExport() {
+    setExporting(true);
+    try { await exportMaterialPdf(); } finally { setExporting(false); }
+  }
+
+  return (
+    <div className="tab-content">
+      <div className={`mat-summary ${hasWarnings ? "mat-summary-warn" : "mat-summary-ok"}`}>
+        {hasWarnings ? (
+          <span>
+            {understockCount > 0 && <>⚠ {understockCount} Artikel unter Mindestmenge &nbsp; </>}
+            {expiredCount > 0 && <>⏰ {expiredCount} Charge(n) abgelaufen &nbsp; </>}
+            {soonCount > 0 && <>🕓 {soonCount} Charge(n) laufen bald ab</>}
+          </span>
+        ) : (
+          <span>✓ Alle Bestände im grünen Bereich</span>
+        )}
+      </div>
+
+      <div className="mat-controls">
+        <label className="mat-filter-label">
+          <input type="checkbox" checked={onlyWarnings} onChange={(e) => setOnlyWarnings(e.target.checked)} />
+          Nur Warnungen anzeigen
+        </label>
+        <div className="mat-controls-right">
+          <button className="btn btn-ghost" onClick={handlePdfExport} disabled={exporting}>
+            <Download size={14} /> {exporting ? "Wird erstellt …" : "Bericht als PDF"}
+          </button>
+          <button className="btn btn-ghost" onClick={() => setShowAddMaterial((s) => !s)}>+ Neues Material</button>
+        </div>
+      </div>
+
+      {showAddMaterial && (
+        <div className="inline-form">
+          <input className="text-input" placeholder="Artikelname" value={newName} onChange={(e) => setNewName(e.target.value)} />
+          <input className="text-input" placeholder="Ref.-Nummer (optional)" value={newRef} onChange={(e) => setNewRef(e.target.value)} />
+          <input className="text-input mat-num-input" type="number" min="0" placeholder="Mindestmenge" value={newMin} onChange={(e) => setNewMin(e.target.value)} />
+          <button className="btn btn-primary" onClick={submitNewMaterial}>Hinzufügen</button>
+          <button className="btn btn-ghost" onClick={() => setShowAddMaterial(false)}>Abbrechen</button>
+        </div>
+      )}
+
+      <div className="mat-list">
+        {visibleRows.length === 0 && <p className="hint-text">Keine Artikel zu sehen.</p>}
+        {visibleRows.map(({ mat, status }) => {
+          const isExpanded = !!expanded[mat.id];
+          const qtyBadgeClass = status.understock ? "mat-badge-bad" : "mat-badge-ok";
+          const expiryBadgeClass = status.expiryState === "expired" ? "mat-badge-bad" : status.expiryState === "soon" ? "mat-badge-warn" : "";
+          const image = materialImages ? materialImages[mat.id] : null;
+          return (
+            <div key={mat.id} className="mat-row">
+              <div className="mat-row-main" onClick={() => toggleExpand(mat.id)}>
+                {image ? <img src={image} alt="" className="mat-thumb" /> : <div className="mat-thumb mat-thumb-empty"><ImageIcon size={14} /></div>}
+                <div className="mat-name-block">
+                  <div className="mat-name">{mat.name}</div>
+                  {mat.refNr ? <div className="mat-ref">Ref.: {mat.refNr}</div> : null}
+                </div>
+                {mat.usage ? <div className="mat-usage-badge">{USAGE_LABELS[mat.usage]}</div> : null}
+                <div className={`mat-qty-badge ${qtyBadgeClass}`}>
+                  {status.total}{mat.minQty > 0 ? ` / ${mat.minQty}` : ""} Stk.
+                </div>
+                <div className={`mat-expiry-badge ${expiryBadgeClass}`}>
+                  {status.soonest ? `MHD ${status.soonest}` : "kein MHD hinterlegt"}
+                </div>
+              </div>
+
+              {isExpanded && (
+                <div className="mat-detail">
+                  <div className="mat-editrow">
+                    <div className="mat-image-edit">
+                      {image ? <img src={image} alt="" className="mat-thumb-lg" /> : <div className="mat-thumb-lg mat-thumb-empty"><ImageIcon size={22} /></div>}
+                      <div className="mat-image-actions">
+                        <label className="btn btn-ghost mat-upload-label">
+                          <ImageIcon size={13} /> Bild wählen
+                          <input
+                            type="file" accept="image/*" className="mat-file-input"
+                            onChange={(e) => { if (e.target.files && e.target.files[0]) uploadMaterialImage(mat.id, e.target.files[0]); e.target.value = ""; }}
+                          />
+                        </label>
+                        {image && <button className="mini-btn" onClick={() => removeMaterialImage(mat.id)}><Trash2 size={12} /></button>}
+                      </div>
+                    </div>
+
+                    <div className="mat-name-edit-block">
+                      {nameEdit === mat.id ? (
+                        <div className="inline-form">
+                          <input className="text-input" value={nameEditValue} onChange={(e) => setNameEditValue(e.target.value)} autoFocus />
+                          <button className="btn btn-primary" onClick={() => submitNameEdit(mat.id)}>Speichern</button>
+                          <button className="btn btn-ghost" onClick={() => setNameEdit(null)}>Abbrechen</button>
+                        </div>
+                      ) : (
+                        <button className="mat-name-edit-btn" onClick={() => startNameEdit(mat)}>
+                          <Pencil size={12} /> Namen ändern
+                        </button>
+                      )}
+                      <div className="mat-usage-picker">
+                        <span className="field-label">Verwendung:</span>
+                        {["lunge", "herz", "beide"].map((u) => (
+                          <button
+                            key={u}
+                            className={`usage-btn ${mat.usage === u ? "usage-btn-active" : ""}`}
+                            onClick={() => updateMaterialUsage(mat.id, mat.usage === u ? null : u)}
+                          >
+                            {USAGE_LABELS[u]}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {mat.batches.length === 0 ? (
+                    <p className="hint-text">Keine Chargen erfasst.</p>
+                  ) : (
+                    <table className="mat-batch-table">
+                      <thead><tr><th>Menge</th><th>Verfallsdatum</th><th>Charge/LOT</th><th></th></tr></thead>
+                      <tbody>
+                        {mat.batches.map((b) => {
+                          const du = b.expiry ? daysUntil(b.expiry) : null;
+                          const cls = du !== null && du < 0 ? "mat-batch-expired" : du !== null && du <= EXPIRY_WARNING_DAYS ? "mat-batch-soon" : "";
+                          return (
+                            <tr key={b.id} className={cls}>
+                              <td>{b.qty}</td>
+                              <td>{b.expiry || "–"}</td>
+                              <td>{b.lot || "–"}</td>
+                              <td><button className="mini-btn" onClick={() => deleteBatch(mat.id, b.id)}>✕</button></td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  )}
+
+                  <div className="mat-actions">
+                    <button className="btn btn-ghost" onClick={() => openBatchForm(mat.id)}>+ Charge</button>
+                    <button className="btn btn-ghost" onClick={() => openConsumeForm(mat.id)}>− Verbrauch</button>
+                    <span className="mat-min-edit">
+                      Mindestmenge:
+                      <input
+                        type="number" min="0" className="text-input mat-num-input"
+                        value={mat.minQty}
+                        onChange={(e) => updateMinQty(mat.id, Number(e.target.value) || 0)}
+                      />
+                    </span>
+                    <button
+                      className="mini-btn mat-delete"
+                      onClick={() => { if (window.confirm(`„${mat.name}" wirklich aus der Materialliste entfernen?`)) deleteMaterial(mat.id); }}
+                    >
+                      Artikel löschen
+                    </button>
+                  </div>
+
+                  {batchForm === mat.id && (
+                    <div className="inline-form">
+                      <input className="text-input mat-num-input" type="number" min="1" placeholder="Menge" value={batchQty} onChange={(e) => setBatchQty(e.target.value)} />
+                      <input className="text-input" type="date" value={batchExpiry} onChange={(e) => setBatchExpiry(e.target.value)} />
+                      <input className="text-input" placeholder="LOT (optional)" value={batchLot} onChange={(e) => setBatchLot(e.target.value)} />
+                      <button className="btn btn-primary" onClick={() => submitBatchForm(mat.id)}>Speichern</button>
+                      <button className="btn btn-ghost" onClick={() => setBatchForm(null)}>Abbrechen</button>
+                    </div>
+                  )}
+                  {consumeForm === mat.id && (
+                    <div className="inline-form">
+                      <input className="text-input mat-num-input" type="number" min="1" placeholder="Verbrauchte Menge" value={consumeQtyInput} onChange={(e) => setConsumeQtyInput(e.target.value)} />
+                      <button className="btn btn-primary" onClick={() => submitConsumeForm(mat.id)}>Abbuchen</button>
+                      <button className="btn btn-ghost" onClick={() => setConsumeForm(null)}>Abbrechen</button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Tab: Im Einsatz ---------- */
+
+function EinsatzTab({ data, einsatz, setEinsatzOrgan, setItemVariant, markItemsPacked, markItemsConsumed, resetEinsatzChecklist, updateChecklistItem, addChecklistItem, removeChecklistItem }) {
+  const [checked, setChecked] = useState({});
+  const [editMode, setEditMode] = useState(false);
+  const [newItemLabel, setNewItemLabel] = useState({ lunge: "", herz: "", rucksack: "" });
+
+  const organ = einsatz.organ;
+
+  function toggleChecked(itemId) {
+    setChecked((c) => ({ ...c, [itemId]: !c[itemId] }));
+  }
+
+  function materialFor(id) { return data.materials.find((m) => m.id === id); }
+
+  function renderItemRow(listKey, item) {
+    const entry = einsatz.itemStatus[item.id] || {};
+    const status = entry.status || "offen";
+    const variant = entry.variant || (item.variantOptions ? item.variantOptions[0] : null);
+    const linkedMaterial = item.variantOptions ? materialFor(variant) : materialFor(item.materialId);
+    const stock = linkedMaterial ? materialTotalQty(linkedMaterial) : null;
+    const isChecked = !!checked[item.id];
+    return (
+      <div key={item.id} className={`einsatz-item einsatz-item-${status}`}>
+        <label className="einsatz-item-main">
+          <input type="checkbox" checked={isChecked} onChange={() => toggleChecked(item.id)} disabled={status === "consumed"} />
+          <span className="einsatz-item-label">{item.label}</span>
+          {status === "packed" && <span className="einsatz-status-tag einsatz-status-packed">gepackt</span>}
+          {status === "consumed" && <span className="einsatz-status-tag einsatz-status-consumed">verbraucht</span>}
+        </label>
+        <div className="einsatz-item-meta">
+          {item.variantOptions ? (
+            <select className="select einsatz-variant-select" value={variant || ""} onChange={(e) => setItemVariant(item.id, e.target.value)}>
+              {item.variantOptions.map((mid) => {
+                const m = materialFor(mid);
+                return <option key={mid} value={mid}>{m ? m.name : mid}</option>;
+              })}
+            </select>
+          ) : linkedMaterial ? (
+            <span className="einsatz-linked">{linkedMaterial.name}{stock !== null ? ` (Bestand: ${stock})` : ""}</span>
+          ) : (
+            <span className="einsatz-linked einsatz-unlinked">kein Bestand verknüpft</span>
+          )}
+          <span className="einsatz-qty">× {item.qty}</span>
+          {editMode && (
+            <>
+              <select
+                className="select einsatz-link-select"
+                value={item.materialId || ""}
+                onChange={(e) => updateChecklistItem(listKey, item.id, { materialId: e.target.value || null })}
+              >
+                <option value="">– kein Bestand –</option>
+                {data.materials.map((m) => (<option key={m.id} value={m.id}>{m.name}</option>))}
+              </select>
+              <input
+                type="number" min="1" className="text-input mat-num-input"
+                value={item.qty}
+                onChange={(e) => updateChecklistItem(listKey, item.id, { qty: Number(e.target.value) || 1 })}
+              />
+              <button className="mini-btn mat-delete" onClick={() => removeChecklistItem(listKey, item.id)}><Trash2 size={12} /></button>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  function renderList(listKey, title, items) {
+    return (
+      <div className="einsatz-section" key={listKey}>
+        <h3 className="einsatz-section-title">{title}</h3>
+        {items.map((it) => renderItemRow(listKey, it))}
+        {editMode && (
+          <div className="inline-form">
+            <input
+              className="text-input" placeholder="Neuer Punkt"
+              value={newItemLabel[listKey]}
+              onChange={(e) => setNewItemLabel((s) => ({ ...s, [listKey]: e.target.value }))}
+            />
+            <button
+              className="btn btn-ghost"
+              onClick={() => {
+                if (newItemLabel[listKey].trim()) {
+                  addChecklistItem(listKey, newItemLabel[listKey].trim());
+                  setNewItemLabel((s) => ({ ...s, [listKey]: "" }));
+                }
+              }}
+            >
+              + Hinzufügen
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  const activeListKeys = organ ? [organ, "rucksack"] : [];
+
+  function selectedItemsData() {
+    const all = [];
+    activeListKeys.forEach((lk) => {
+      (data.checklists[lk] || []).forEach((item) => {
+        if (checked[item.id]) {
+          const entry = einsatz.itemStatus[item.id] || {};
+          const materialId = item.variantOptions ? (entry.variant || item.variantOptions[0]) : item.materialId;
+          all.push({ id: item.id, materialId, qty: item.qty });
+        }
+      });
+    });
+    return all;
+  }
+
+  const anyChecked = activeListKeys.some((lk) => (data.checklists[lk] || []).some((it) => checked[it.id]));
+
+  function handleMarkPacked() {
+    const ids = [];
+    activeListKeys.forEach((lk) => (data.checklists[lk] || []).forEach((it) => { if (checked[it.id]) ids.push(it.id); }));
+    markItemsPacked(ids);
+    setChecked((c) => { const n = { ...c }; ids.forEach((id) => delete n[id]); return n; });
+  }
+  function handleMarkConsumed() {
+    const items = selectedItemsData();
+    markItemsConsumed(items);
+    setChecked((c) => { const n = { ...c }; items.forEach((it) => delete n[it.id]); return n; });
+  }
+
+  return (
+    <div className="tab-content">
+      <div className="panel">
+        <div>
+          <label className="field-label">Einsatzart</label>
+          <div className="organ-picker">
+            <button className={`organ-btn ${organ === "lunge" ? "organ-btn-active" : ""}`} onClick={() => setEinsatzOrgan("lunge")}>Lunge</button>
+            <button className={`organ-btn ${organ === "herz" ? "organ-btn-active" : ""}`} onClick={() => setEinsatzOrgan("herz")}>Herz</button>
+          </div>
+        </div>
+        <button className="btn btn-ghost" onClick={() => setEditMode((e) => !e)}>{editMode ? "Fertig" : "Listen bearbeiten"}</button>
+      </div>
+
+      {!organ ? (
+        <p className="hint-text">Bitte oben Lunge oder Herz wählen, um die Packliste zu sehen.</p>
+      ) : (
+        <>
+          {renderList(organ, organ === "lunge" ? "Material für Lunge" : "Material für Herz", data.checklists[organ] || [])}
+          {renderList("rucksack", "Materialrucksack", data.checklists.rucksack || [])}
+
+          <div className="einsatz-actions">
+            <button className="btn btn-ghost" onClick={handleMarkPacked} disabled={!anyChecked}>Ausgewählte als gepackt markieren</button>
+            <button className="btn btn-primary" onClick={handleMarkConsumed} disabled={!anyChecked}>Ausgewählte als verbraucht markieren (Bestand abziehen)</button>
+            <button className="btn btn-ghost" onClick={resetEinsatzChecklist}><RotateCcw size={14} /> Einsatz zurücksetzen</button>
+          </div>
+          <p className="hint-text">
+            „Gepackt" merkt vor, was mitgenommen wurde – der Bestand ändert sich noch nicht. „Verbraucht" bucht die Menge tatsächlich vom Material-Bestand ab.
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ---------- gemeinsame Bausteine ---------- */
+
+function MonthNav({ year, month, onPrev, onNext }) {
+  return (
+    <div className="month-nav">
+      <button className="nav-btn" onClick={onPrev}><ChevronLeft size={18} /></button>
+      <span className="month-label">{MONTH_NAMES[month]} {year}</span>
+      <button className="nav-btn" onClick={onNext}><ChevronRight size={18} /></button>
+    </div>
+  );
+}
+
+function CalendarShell({ weeks, viewMonth, renderCell }) {
+  return (
+    <div className="cal-grid">
+      <div className="cal-week-row cal-header-row">
+        {WEEKDAY_SHORT.map((w) => (<div key={w} className="cal-weekday">{w}</div>))}
+      </div>
+      {weeks.map((week, wi) => (
+        <div className="cal-week-row" key={wi}>
+          {week.map((dateStr) => {
+            const inMonth = parseDstr(dateStr).m === viewMonth;
+            return <div className="cal-cell-wrap" key={dateStr}>{renderCell(dateStr, inMonth)}</div>;
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Legend() {
+  return (
+    <div className="legend-row">
+      <span className="legend-chip"><span className="legend-dot legend-dot-verf"></span>Verfügbar</span>
+      <span className="legend-chip"><span className="legend-dot legend-dot-viell"></span>Vielleicht</span>
+      <span className="legend-chip">⏱ Vorlaufzeit nötig</span>
+    </div>
+  );
+}
+
+function Logo({ size = 40 }) {
+  return (
+    <span className="logo-emoji" style={{ fontSize: size * 0.62, lineHeight: 1 }}>
+      🫀🫁
+    </span>
+  );
+}
+
+const rootEl = document.getElementById("root");
+ReactDOM.createRoot(rootEl).render(<App />);
+
+
+
+
+
+
+</script>
+</body>
+</html>
