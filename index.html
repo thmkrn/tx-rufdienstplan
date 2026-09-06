@@ -11,8 +11,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
 <style>
+
 
 
 
@@ -568,11 +568,13 @@
 
 
 
+
 </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel" data-presets="react">
+
 
 
 
@@ -955,8 +957,41 @@ function asciiSafe(s) {
     .replace(/[^\x00-\x7E]/g, "?");
 }
 
-function buildMaterialReportPdf(materials) {
-  const JsPDFCtor = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
+function loadScriptOnce(src) {
+  return new Promise((resolve, reject) => {
+    const existing = document.querySelector('script[data-dynsrc="' + src + '"]');
+    if (existing) { resolve(); return; }
+    const s = document.createElement("script");
+    s.src = src;
+    s.setAttribute("data-dynsrc", src);
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error("Konnte nicht geladen werden: " + src));
+    document.head.appendChild(s);
+  });
+}
+
+async function ensureJsPDF() {
+  if (window.jspdf && window.jspdf.jsPDF) return window.jspdf.jsPDF;
+  if (window.jsPDF) return window.jsPDF;
+  const sources = [
+    "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js",
+    "https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js",
+  ];
+  let lastError = null;
+  for (const src of sources) {
+    try {
+      await loadScriptOnce(src);
+      if (window.jspdf && window.jspdf.jsPDF) return window.jspdf.jsPDF;
+      if (window.jsPDF) return window.jsPDF;
+    } catch (e) {
+      lastError = e;
+      console.warn("PDF-Bibliothek konnte nicht geladen werden von", src, e);
+    }
+  }
+  throw new Error("Die PDF-Bibliothek konnte von keiner Quelle geladen werden (Netzwerk/Firewall prüfen)." + (lastError ? " (" + lastError.message + ")" : ""));
+}
+
+function buildMaterialReportPdf(materials, JsPDFCtor) {
   const doc = new JsPDFCtor({ unit: "mm", format: "a4" });
   const marginX = 14;
   let y = 18;
@@ -1540,11 +1575,8 @@ function App() {
 
   async function exportMaterialPdf() {
     try {
-      if (!window.jspdf && !window.jsPDF) {
-        window.alert("Die PDF-Bibliothek konnte nicht geladen werden (evtl. Internetverbindung oder Werbeblocker prüfen). Bitte Seite neu laden und erneut versuchen.");
-        return;
-      }
-      const blob = buildMaterialReportPdf(data.materials || []);
+      const JsPDFCtor = await ensureJsPDF();
+      const blob = buildMaterialReportPdf(data.materials || [], JsPDFCtor);
       triggerBrowserDownload(blob, "material-bericht.pdf");
     } catch (e) {
       console.error("PDF-Export fehlgeschlagen", e);
@@ -2594,6 +2626,7 @@ function Logo({ size = 40 }) {
 
 const rootEl = document.getElementById("root");
 ReactDOM.createRoot(rootEl).render(<App />);
+
 
 
 
