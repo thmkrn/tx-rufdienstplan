@@ -21,6 +21,8 @@
 
 
 
+
+
       @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap');
 
       :root {
@@ -556,6 +558,21 @@
       .admin-lead-dot { font-size: 8px; }
 
       .people-manage-panel { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+
+      .admin-iststand-panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        padding: 12px 16px;
+        display: inline-block;
+        max-width: 260px;
+      }
+      .admin-iststand-title { font-family: 'Fraunces', serif; font-size: 13px; font-weight: 600; margin: 0 0 6px; }
+      .admin-iststand-table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+      .admin-iststand-table td { padding: 3px 6px 3px 0; border-bottom: 1px solid var(--line); }
+      .admin-iststand-table tr:last-child td { border-bottom: none; }
+      .admin-iststand-name { font-weight: 600; }
+      .admin-iststand-count { text-align: right; font-weight: 700; color: var(--ink); }
       .people-manage-list { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 360px; }
       .people-manage-row { display: flex; align-items: center; gap: 8px; }
       .people-color-input { width: 34px; height: 34px; padding: 2px; border: 1px solid var(--line); border-radius: 3px; background: var(--surface); cursor: pointer; }
@@ -569,11 +586,15 @@
 
 
 
+
+
 </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel" data-presets="react">
+
+
 
 
 
@@ -837,6 +858,18 @@ function colorFor(members, id) {
   return base ? base.color : "#8B8578";
 }
 
+function computeGesamt(data, personId) {
+  const baseline = (data.statsBaseline || {})[personId] || { count: 0, asOf: "" };
+  const asOf = baseline.asOf || null;
+  let countAfter = 0;
+  Object.entries(data.assignments || {}).forEach(([ds, pid]) => {
+    if (pid !== personId) return;
+    if (asOf && ds <= asOf) return; // vor/am Ist-Stand-Datum -> schon im Ist-Stand enthalten
+    countAfter++;
+  });
+  return (baseline.count || 0) + countAfter;
+}
+
 function shortMemberName(members, member) {
   const first = member.name.split(" ")[0];
   const sameFirst = members.filter((m) => m.name.split(" ")[0] === first);
@@ -1003,20 +1036,36 @@ function buildMaterialReportPdf(materials, JsPDFCtor) {
   y += 9;
 
   const colX = [marginX, marginX + 68, marginX + 100, marginX + 118, marginX + 140, marginX + 168];
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "bold");
-  ["Artikel", "Verwendung", "Bestand", "Mind.", "MHD", "Status"].forEach((h, i) => doc.text(h, colX[i], y));
-  doc.setFont("helvetica", "normal");
-  y += 2;
-  doc.line(marginX, y, 196, y);
-  y += 5;
+  const headers = ["Artikel", "Verwendung", "Bestand", "Mind.", "MHD", "Status"];
+
+  function drawHeaderRow() {
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    headers.forEach((h, i) => doc.text(h, colX[i], y));
+    doc.setFont("helvetica", "normal");
+    y += 2;
+    doc.line(marginX, y, 196, y);
+    y += 5;
+  }
+
+  function fitToWidth(text, maxWidthMm) {
+    doc.setFontSize(8.5);
+    if (doc.getTextWidth(text) <= maxWidthMm) return text;
+    let cut = text;
+    while (cut.length > 1 && doc.getTextWidth(cut + "...") > maxWidthMm) {
+      cut = cut.slice(0, -1);
+    }
+    return cut + "...";
+  }
+
+  drawHeaderRow();
 
   materials.forEach((m) => {
     try {
       const status = materialStatus(m);
-      if (y > 280) { doc.addPage(); y = 18; }
+      if (y > 275) { doc.addPage(); y = 18; drawHeaderRow(); }
       doc.setFontSize(8.5);
-      doc.text(asciiSafe(m.name || "-").slice(0, 40), colX[0], y);
+      doc.text(fitToWidth(asciiSafe(m.name || "-"), 64), colX[0], y);
       doc.text(asciiSafe(USAGE_LABELS[m.usage] || "-"), colX[1], y);
       doc.text(String(status.total), colX[2], y);
       doc.text(String(m.minQty || 0), colX[3], y);
@@ -1967,6 +2016,20 @@ function AdminTab({ data, viewYear, viewMonth, weeks, goPrevMonth, goNextMonth, 
 
   return (
     <div className="tab-content">
+      <div className="admin-iststand-panel">
+        <h3 className="admin-iststand-title">Aktueller Ist-Stand</h3>
+        <table className="admin-iststand-table">
+          <tbody>
+            {data.members.map((m) => (
+              <tr key={m.id}>
+                <td className="admin-iststand-name" style={{ color: colorFor(data.members, m.id) }}>{m.name}</td>
+                <td className="admin-iststand-count">{computeGesamt(data, m.id)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
       <p className="hint-text">
         Klick auf einen Namen an einem <strong>Montag</strong> weist ihn für die <strong>ganze Woche</strong> als Rufdienst zu. Klick auf einen Namen an einem <strong>anderen Tag</strong> gilt nur für diesen einen Tag (z. B. um das Wochenende an jemand anderen zu vergeben). <strong>Linksklick</strong> = Primär, <strong>Rechtsklick</strong> = Backup. Nochmaliger Klick entfernt die Zuweisung wieder. Es werden nur Personen angezeigt, die für den jeweiligen Tag Verfügbarkeit gemeldet haben.
       </p>
@@ -2183,7 +2246,7 @@ function StatistikTab({ data, statYear, setStatYear, availableYears, stats, upda
       </div>
 
       <p className="hint-text">
-        „Manueller Ist-Stand" addiert eine von euch eingetragene Anzahl bereits geleisteter Dienste (z. B. aus der Zeit vor dieser App) zur laufenden Zählung dazu und ergibt die Spalte „Gesamt". Das Datum „Stand vom" dient nur der Dokumentation.
+        „Manueller Ist-Stand" trägt eine Anzahl bereits geleisteter Dienste bis zu einem bestimmten Datum ein (z. B. aus der Zeit vor dieser App). Die Spalte „Gesamt" zählt dazu nur die in der App eingetragenen Dienste, die <strong>nach</strong> diesem „Stand vom"-Datum liegen – Tage davor werden nicht doppelt gezählt. „Gesamt" ist unabhängig vom oben gewählten Jahr.
       </p>
 
       <div className="stats-table-wrap">
@@ -2214,6 +2277,7 @@ function StatistikTab({ data, statYear, setStatYear, availableYears, stats, upda
                       type="number" min="0" className="text-input mat-num-input"
                       value={draftCount(m.id)}
                       onChange={(e) => setDrafts((d) => ({ ...d, [m.id + ":count"]: e.target.value }))}
+                      onFocus={(e) => e.target.select()}
                       onBlur={() => commitCount(m.id)}
                       onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
                     />
@@ -2225,7 +2289,7 @@ function StatistikTab({ data, statYear, setStatYear, availableYears, stats, upda
                       onChange={(e) => updateStatsBaseline(m.id, { asOf: e.target.value })}
                     />
                   </td>
-                  <td className="stats-total-cell">{s.total + (baseline.count || 0)}</td>
+                  <td className="stats-total-cell">{computeGesamt(data, m.id)}</td>
                 </tr>
               );
             })}
@@ -2332,7 +2396,7 @@ function MaterialTab({ data, materialImages, addBatch, consumeQty, deleteBatch, 
         <div className="inline-form">
           <input className="text-input" placeholder="Artikelname" value={newName} onChange={(e) => setNewName(e.target.value)} />
           <input className="text-input" placeholder="Ref.-Nummer (optional)" value={newRef} onChange={(e) => setNewRef(e.target.value)} />
-          <input className="text-input mat-num-input" type="number" min="0" placeholder="Mindestmenge" value={newMin} onChange={(e) => setNewMin(e.target.value)} />
+          <input className="text-input mat-num-input" type="number" min="0" placeholder="Mindestmenge" value={newMin} onChange={(e) => setNewMin(e.target.value)} onFocus={(e) => e.target.select()} />
           <button className="btn btn-primary" onClick={submitNewMaterial}>Hinzufügen</button>
           <button className="btn btn-ghost" onClick={() => setShowAddMaterial(false)}>Abbrechen</button>
         </div>
@@ -2437,6 +2501,7 @@ function MaterialTab({ data, materialImages, addBatch, consumeQty, deleteBatch, 
                         type="number" min="0" className="text-input mat-num-input"
                         value={mat.minQty}
                         onChange={(e) => updateMinQty(mat.id, Number(e.target.value) || 0)}
+                        onFocus={(e) => e.target.select()}
                       />
                     </span>
                     <button
@@ -2449,7 +2514,7 @@ function MaterialTab({ data, materialImages, addBatch, consumeQty, deleteBatch, 
 
                   {batchForm === mat.id && (
                     <div className="inline-form">
-                      <input className="text-input mat-num-input" type="number" min="1" placeholder="Menge" value={batchQty} onChange={(e) => setBatchQty(e.target.value)} />
+                      <input className="text-input mat-num-input" type="number" min="1" placeholder="Menge" value={batchQty} onChange={(e) => setBatchQty(e.target.value)} onFocus={(e) => e.target.select()} />
                       <input className="text-input" type="date" value={batchExpiry} onChange={(e) => setBatchExpiry(e.target.value)} />
                       <input className="text-input" placeholder="LOT (optional)" value={batchLot} onChange={(e) => setBatchLot(e.target.value)} />
                       <button className="btn btn-primary" onClick={() => submitBatchForm(mat.id)}>Speichern</button>
@@ -2458,7 +2523,7 @@ function MaterialTab({ data, materialImages, addBatch, consumeQty, deleteBatch, 
                   )}
                   {consumeForm === mat.id && (
                     <div className="inline-form">
-                      <input className="text-input mat-num-input" type="number" min="1" placeholder="Verbrauchte Menge" value={consumeQtyInput} onChange={(e) => setConsumeQtyInput(e.target.value)} />
+                      <input className="text-input mat-num-input" type="number" min="1" placeholder="Verbrauchte Menge" value={consumeQtyInput} onChange={(e) => setConsumeQtyInput(e.target.value)} onFocus={(e) => e.target.select()} />
                       <button className="btn btn-primary" onClick={() => submitConsumeForm(mat.id)}>Abbuchen</button>
                       <button className="btn btn-ghost" onClick={() => setConsumeForm(null)}>Abbrechen</button>
                     </div>
@@ -2506,6 +2571,7 @@ function EinsatzTab({ data, einsatz, setEinsatzOrgan, setItemQty, markItemsPacke
             type="number" min="1" className="text-input mat-num-input einsatz-qty-input"
             value={qty}
             onChange={(e) => setItemQty(material.id, Math.max(1, Number(e.target.value) || 1))}
+            onFocus={(e) => e.target.select()}
             disabled={status === "consumed"}
           />
         </div>
@@ -2626,6 +2692,8 @@ function Logo({ size = 40 }) {
 
 const rootEl = document.getElementById("root");
 ReactDOM.createRoot(rootEl).render(<App />);
+
+
 
 
 
