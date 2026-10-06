@@ -25,6 +25,7 @@
 
 
 
+
       @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap');
 
       :root {
@@ -615,6 +616,85 @@
 
       .people-manage-panel { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
 
+
+      /* ---- Verfügbarkeit: Montag-Button ---- */
+      .week-btn {
+        align-self: flex-start;
+        background: var(--surface);
+        border: 1px solid var(--lung);
+        color: var(--lung);
+        border-radius: 10px;
+        padding: 0 7px;
+        font-size: 9.5px;
+        font-weight: 700;
+        font-family: inherit;
+        line-height: 1.6;
+        cursor: pointer;
+      }
+      .week-btn:hover { background: var(--lung); color: #fff; }
+
+      /* ---- Admin: manuelles Einplanen, Markierungen ---- */
+      .admin-add-btn {
+        background: transparent;
+        border: 1px solid var(--line);
+        border-radius: 50%;
+        width: 15px;
+        height: 15px;
+        line-height: 1;
+        color: var(--muted);
+        cursor: pointer;
+        padding: 0;
+        font-size: 11px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .admin-add-btn:hover { color: var(--lung); border-color: var(--lung); }
+      .admin-mini-chip-manual { border-style: dashed; border-color: var(--muted); background: var(--surface); }
+      .admin-mini-chip-archived { opacity: 0.55; cursor: default; font-style: italic; }
+      .admin-manual-tag { font-size: 8px; font-weight: 800; padding: 0 3px; border-radius: 6px; background: var(--muted); color: #fff; }
+
+      /* ---- Dialoge ---- */
+      .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(20, 24, 30, 0.55);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        z-index: 1000;
+      }
+      .modal-card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 18px 20px;
+        width: 100%;
+        max-width: 400px;
+        max-height: 85vh;
+        overflow-y: auto;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+      }
+      .modal-title { font-family: 'Fraunces', serif; font-size: 16px; font-weight: 600; margin: 0 0 6px; }
+      .modal-text { font-size: 13px; color: var(--muted); margin: 0 0 12px; }
+      .modal-check { display: flex; align-items: center; gap: 8px; font-size: 13px; margin-bottom: 10px; cursor: pointer; }
+      .modal-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+      .modal-row { display: flex; align-items: center; gap: 6px; }
+      .modal-row-name { flex: 1; font-weight: 600; font-size: 14px; }
+      .modal-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; margin-top: 8px; }
+
+      /* ---- Personen: Archiv ---- */
+      .people-manage-row .mini-btn { white-space: nowrap; }
+      .people-archived { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); display: flex; flex-direction: column; gap: 8px; }
+      .people-archived-title { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+      .people-archived-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+      .people-archived-text { display: flex; flex-direction: column; flex: 1; min-width: 180px; }
+      .people-archived-name { font-weight: 600; font-size: 13px; }
+      .people-archived-info { font-size: 11px; color: var(--muted); }
+      .stats-archived-tag { font-size: 11px; color: var(--muted); font-style: italic; }
+
       .admin-iststand-panel {
         background: var(--panel);
         border: 1px solid var(--line);
@@ -633,11 +713,12 @@
       }
       .admin-iststand-tile-name { font-size: 11px; font-weight: 600; white-space: nowrap; }
       .admin-iststand-tile-count { font-family: 'Fraunces', serif; font-size: 19px; font-weight: 600; color: var(--ink); line-height: 1.3; }
-      .people-manage-list { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 360px; }
+      .people-manage-list { display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 520px; }
       .people-manage-row { display: flex; align-items: center; gap: 8px; }
       .people-color-input { width: 34px; height: 34px; padding: 2px; border: 1px solid var(--line); border-radius: 3px; background: var(--surface); cursor: pointer; }
       .people-name-input { flex: 1; }
     
+
 
 
 
@@ -655,6 +736,7 @@
 <body>
 <div id="root"></div>
 <script type="text/babel" data-presets="react">
+
 
 
 
@@ -923,16 +1005,45 @@ function colorFor(members, id) {
   return base ? base.color : "#8B8578";
 }
 
-function computeGesamt(data, personId) {
-  const baseline = (data.statsBaseline || {})[personId] || { count: 0, asOf: "" };
+function baselineFor(data, personId, year) {
+  const perPerson = (data.statsBaseline || {})[personId] || {};
+  return perPerson[String(year)] || { count: 0, asOf: "" };
+}
+
+// Zählung pro Kalenderjahr: manueller Ist-Stand (nur dieses Jahr) + in der App eingetragene
+// Dienste dieses Jahres, die NACH dem "Stand vom"-Datum liegen. Neues Jahr = Neustart bei 0.
+function computeYearCount(data, personId, year) {
+  const baseline = baselineFor(data, personId, year);
   const asOf = baseline.asOf || null;
   let countAfter = 0;
   Object.entries(data.assignments || {}).forEach(([ds, pid]) => {
     if (pid !== personId) return;
-    if (asOf && ds <= asOf) return; // vor/am Ist-Stand-Datum -> schon im Ist-Stand enthalten
+    if (ds.slice(0, 4) !== String(year)) return;
+    if (asOf && ds <= asOf) return; // schon im manuellen Ist-Stand enthalten
     countAfter++;
   });
   return (baseline.count || 0) + countAfter;
+}
+
+// Entfernt eine Person samt aller zugehörigen Daten endgültig (gibt neues Datenobjekt zurück).
+function purgeMemberFromData(data, personId) {
+  const assignments = {};
+  Object.entries(data.assignments || {}).forEach(([ds, pid]) => { if (pid !== personId) assignments[ds] = pid; });
+  const backupAssignments = {};
+  Object.entries(data.backupAssignments || {}).forEach(([ds, pid]) => { if (pid !== personId) backupAssignments[ds] = pid; });
+  const availability = { ...(data.availability || {}) };
+  delete availability[personId];
+  const statsBaseline = { ...(data.statsBaseline || {}) };
+  delete statsBaseline[personId];
+  return {
+    ...data,
+    members: (data.members || []).filter((m) => m.id !== personId),
+    assignments,
+    backupAssignments,
+    availability,
+    statsBaseline,
+    materialChecks: (data.materialChecks || []).map((c) => (c.personId === personId ? { ...c, personId: null } : c)),
+  };
 }
 
 function shortMemberName(members, member) {
@@ -966,23 +1077,36 @@ function memberName(data, id) {
 function availablePeopleForDay(data, dateStr) {
   const list = [];
   data.members.forEach((member) => {
+    if (member.archived) return;
     const e = (data.availability[member.id] || {})[dateStr];
     if (e && (e.status === "verfuegbar" || e.status === "vielleicht")) {
-      list.push({ member, status: e.status, hasLeadTime: !!e.leadTimeHours, note: e.note || null });
+      list.push({ member, status: e.status, hasLeadTime: !!e.leadTimeHours, note: e.note || null, manual: false, archived: false });
     }
   });
-  // Bereits zugewiesene Personen immer mit anzeigen, auch falls die Verfügbarkeit
-  // nachträglich entfernt wurde (damit die Zuweisung sichtbar bleibt und man sie
-  // wieder entfernen kann).
+  // Bereits zugewiesene Personen ohne gemeldete Verfügbarkeit immer mit anzeigen:
+  // aktive Personen als "manuell eingeplant" (M), archivierte als Historie.
   const primaryId = data.assignments[dateStr];
   const backupId = (data.backupAssignments || {})[dateStr];
   [primaryId, backupId].forEach((pid) => {
     if (pid && !list.find((x) => x.member.id === pid)) {
       const m = data.members.find((x) => x.id === pid);
-      if (m) list.push({ member: m, status: null, hasLeadTime: false, note: null });
+      if (m) list.push({ member: m, status: null, hasLeadTime: false, note: null, manual: !m.archived, archived: !!m.archived });
     }
   });
   return list;
+}
+
+// Aktive Personen, die für den Tag weder Verfügbarkeit gemeldet haben noch bereits eingeplant sind
+// (Kandidaten für das manuelle Einplanen im Admin).
+function manualCandidatesForDay(data, dateStr) {
+  const primaryId = data.assignments[dateStr];
+  const backupId = (data.backupAssignments || {})[dateStr];
+  return data.members.filter((m) => {
+    if (m.archived) return false;
+    if (m.id === primaryId || m.id === backupId) return false;
+    const e = (data.availability[m.id] || {})[dateStr];
+    return !(e && (e.status === "verfuegbar" || e.status === "vielleicht"));
+  });
 }
 
 /* ---------- API-Client (Cloudflare Pages Functions + KV statt Claude-Artifact-DB) ---------- */
@@ -1285,7 +1409,21 @@ function App() {
     if (!remote.backupAssignments) { remote.backupAssignments = {}; changed = true; }
     if (!remote.checklists) { remote.checklists = JSON.parse(JSON.stringify(CHECKLISTS_SEED)); changed = true; }
     if (!remote.statsBaseline) { remote.statsBaseline = {}; changed = true; }
+    // Migration: alter Ist-Stand {count, asOf} -> pro Jahr {"2026": {count, asOf}}
+    Object.keys(remote.statsBaseline).forEach((pid) => {
+      const entry = remote.statsBaseline[pid] || {};
+      if ("count" in entry || "asOf" in entry) {
+        const yr = entry.asOf ? entry.asOf.slice(0, 4) : String(new Date().getFullYear());
+        remote.statsBaseline[pid] = { [yr]: { count: entry.count || 0, asOf: entry.asOf || "" } };
+        changed = true;
+      }
+    });
     if (!remote.materialChecks) { remote.materialChecks = []; changed = true; }
+    // Archivierte Personen werden ab dem Jahreswechsel endgültig gelöscht
+    const thisYear = new Date().getFullYear();
+    (remote.members || [])
+      .filter((m) => m.archived && m.archivedAt && Number(m.archivedAt.slice(0, 4)) < thisYear)
+      .forEach((m) => { remote = purgeMemberFromData(remote, m.id); changed = true; });
     return { data: remote, changed };
   }
 
@@ -1466,12 +1604,43 @@ function App() {
     }));
   }
 
-  function updateStatsBaseline(personId, patch) {
+  function updateStatsBaseline(personId, year, patch) {
     commit((prev) => {
       const statsBaseline = { ...(prev.statsBaseline || {}) };
-      statsBaseline[personId] = { ...(statsBaseline[personId] || { count: 0, asOf: "" }), ...patch };
+      const perPerson = { ...(statsBaseline[personId] || {}) };
+      perPerson[String(year)] = { ...(perPerson[String(year)] || { count: 0, asOf: "" }), ...patch };
+      statsBaseline[personId] = perPerson;
       return { ...prev, statsBaseline };
     });
+  }
+
+  // Person aus dem Team entfernen: zunächst archivieren (ausgeblendet, Historie bleibt),
+  // zum Jahreswechsel wird sie automatisch endgültig gelöscht (siehe normalizeData).
+  function archiveMember(personId) {
+    const today = todayStr();
+    commit((prev) => {
+      const members = prev.members.map((m) => (m.id === personId ? { ...m, archived: true, archivedAt: today } : m));
+      const assignments = { ...prev.assignments };
+      const backupAssignments = { ...(prev.backupAssignments || {}) };
+      Object.keys(assignments).forEach((ds) => { if (ds >= today && assignments[ds] === personId) delete assignments[ds]; });
+      Object.keys(backupAssignments).forEach((ds) => { if (ds >= today && backupAssignments[ds] === personId) delete backupAssignments[ds]; });
+      return { ...prev, members, assignments, backupAssignments };
+    });
+  }
+
+  function restoreMember(personId) {
+    commit((prev) => ({
+      ...prev,
+      members: prev.members.map((m) => {
+        if (m.id !== personId) return m;
+        const { archived, archivedAt, ...rest } = m;
+        return rest;
+      }),
+    }));
+  }
+
+  function deleteMemberPermanently(personId) {
+    commit((prev) => purgeMemberFromData(prev, personId));
   }
 
   function addMaterialCheck(date, personId, note) {
@@ -1500,24 +1669,20 @@ function App() {
     }
     clickTimers.current[dateStr] = setTimeout(() => {
       delete clickTimers.current[dateStr];
-      if (dowMon0(dateStr) === 0) {
-        setWeekAvailable(personId, dateStr);
-      } else {
-        commit((prev) => {
-          const availability = { ...prev.availability };
-          const personAvail = { ...(availability[personId] || {}) };
-          const cur = personAvail[dateStr];
-          const curStatus = cur ? cur.status : null;
-          const nextStatus = curStatus === "verfuegbar" ? "vielleicht" : curStatus === "vielleicht" ? null : "verfuegbar";
-          if (nextStatus === null) {
-            delete personAvail[dateStr];
-          } else {
-            personAvail[dateStr] = { ...(cur || {}), status: nextStatus };
-          }
-          availability[personId] = personAvail;
-          return { ...prev, availability };
-        });
-      }
+      commit((prev) => {
+        const availability = { ...prev.availability };
+        const personAvail = { ...(availability[personId] || {}) };
+        const cur = personAvail[dateStr];
+        const curStatus = cur ? cur.status : null;
+        const nextStatus = curStatus === "verfuegbar" ? "vielleicht" : curStatus === "vielleicht" ? null : "verfuegbar";
+        if (nextStatus === null) {
+          delete personAvail[dateStr];
+        } else {
+          personAvail[dateStr] = { ...(cur || {}), status: nextStatus };
+        }
+        availability[personId] = personAvail;
+        return { ...prev, availability };
+      });
     }, 260);
   }
 
@@ -1552,9 +1717,9 @@ function App() {
     setNote(personId, dateStr, input.trim());
   }
 
-  function setDayRole(dateStr, personId, role) {
-    const wholeWeek = dowMon0(dateStr) === 0;
-    const datesToApply = wholeWeek ? weekFromMonday(dateStr) : [dateStr];
+  function setDayRole(dateStr, personId, role, scope) {
+    const wholeWeek = scope === "week";
+    const datesToApply = wholeWeek ? weekFromMonday(addDaysStr(dateStr, -dowMon0(dateStr))) : [dateStr];
     commit((prev) => {
       const assignments = { ...prev.assignments };
       const backupAssignments = { ...prev.backupAssignments };
@@ -1806,7 +1971,7 @@ function App() {
   const stats = useMemo(() => {
     if (!data) return {};
     const counts = {};
-    data.members.forEach((m) => (counts[m.id] = { total: 0, holiday: 0, backup: 0 }));
+    data.members.forEach((m) => (counts[m.id] = { total: 0, holiday: 0, backup: 0, count: computeYearCount(data, m.id, statYear) }));
     Object.entries(data.assignments).forEach(([ds, pid]) => {
       if (ds.slice(0, 4) !== String(statYear)) return;
       if (!counts[pid]) counts[pid] = { total: 0, holiday: 0, backup: 0 };
@@ -1823,7 +1988,12 @@ function App() {
 
   const availableYears = useMemo(() => {
     const set = new Set([now.getFullYear()]);
-    if (data) Object.keys(data.assignments).forEach((ds) => set.add(Number(ds.slice(0, 4))));
+    if (data) {
+      Object.keys(data.assignments).forEach((ds) => set.add(Number(ds.slice(0, 4))));
+      Object.values(data.statsBaseline || {}).forEach((perPerson) => {
+        Object.keys(perPerson || {}).forEach((yr) => { if (/^\d{4}$/.test(yr)) set.add(Number(yr)); });
+      });
+    }
     return Array.from(set).sort();
   }, [data]);
 
@@ -1947,6 +2117,7 @@ function App() {
             handleAvailDoubleClick={handleAvailDoubleClick}
             handleLeadTimeClick={handleLeadTimeClick}
             handleNoteClick={handleNoteClick}
+            setWeekAvailable={setWeekAvailable}
             exportPersonIcs={exportPersonIcs}
           />
         )}
@@ -1962,6 +2133,9 @@ function App() {
             resetMonthData={resetMonthData}
             updateMemberName={updateMemberName}
             updateMemberColor={updateMemberColor}
+            archiveMember={archiveMember}
+            restoreMember={restoreMember}
+            deleteMemberPermanently={deleteMemberPermanently}
           />
         )}
         {tab === "uebersicht" && (
@@ -2021,7 +2195,7 @@ function App() {
 
 /* ---------- Tab: Verfügbarkeit ---------- */
 
-function VerfuegbarTab({ data, currentPerson, setCurrentPerson, updatePhone, viewYear, viewMonth, weeks, goPrevMonth, goNextMonth, handleAvailClick, handleAvailDoubleClick, handleLeadTimeClick, handleNoteClick, exportPersonIcs }) {
+function VerfuegbarTab({ data, currentPerson, setCurrentPerson, updatePhone, viewYear, viewMonth, weeks, goPrevMonth, goNextMonth, handleAvailClick, handleAvailDoubleClick, handleLeadTimeClick, handleNoteClick, setWeekAvailable, exportPersonIcs }) {
   const person = data.members.find((m) => m.id === currentPerson);
   const today = todayStr();
 
@@ -2032,7 +2206,7 @@ function VerfuegbarTab({ data, currentPerson, setCurrentPerson, updatePhone, vie
           <label className="field-label">Ich bin</label>
           <select className="select" value={currentPerson} onChange={(e) => setCurrentPerson(e.target.value)}>
             <option value="">– Name wählen –</option>
-            {data.members.map((m) => (<option key={m.id} value={m.id}>{m.name}</option>))}
+            {data.members.filter((m) => !m.archived).map((m) => (<option key={m.id} value={m.id}>{m.name}</option>))}
           </select>
           {person && (
             <div className="phone-field">
@@ -2059,7 +2233,7 @@ function VerfuegbarTab({ data, currentPerson, setCurrentPerson, updatePhone, vie
       ) : (
         <>
           <p className="hint-text">
-            Klick auf <strong>Montag</strong> markiert die ganze Woche als verfügbar. Klick auf einen einzelnen Tag wechselt zwischen <strong>Verfügbar</strong> und <strong>Vielleicht</strong>, nochmaliger Klick löscht den Eintrag. Doppelklick löscht sofort. Über das Uhr-Symbol kannst du eine nötige Vorlaufzeit hinterlegen, über das „!"-Symbol einen wichtigen Hinweis.
+            Jeder Tag wird einzeln angeklickt: <strong>1. Klick</strong> = Verfügbar, <strong>2. Klick</strong> = Vielleicht, <strong>3. Klick</strong> = gelöscht. Doppelklick löscht sofort. Im Montagsfeld setzt der Button <strong>„Woche"</strong> die ganze Woche auf verfügbar. Über das Uhr-Symbol kannst du eine nötige Vorlaufzeit hinterlegen, über das „!"-Symbol einen wichtigen Hinweis.
           </p>
           <MonthNav year={viewYear} month={viewMonth} onPrev={goPrevMonth} onNext={goNextMonth} />
           <CalendarShell
@@ -2098,6 +2272,16 @@ function VerfuegbarTab({ data, currentPerson, setCurrentPerson, updatePhone, vie
                       </button>
                     </span>
                   </div>
+                  {dowMon0(dateStr) === 0 && (
+                    <button
+                      type="button"
+                      className="week-btn"
+                      title="Ganze Woche (Mo–So) als verfügbar markieren"
+                      onClick={(e) => { e.stopPropagation(); setWeekAvailable(currentPerson, dateStr); }}
+                    >
+                      Woche
+                    </button>
+                  )}
                   {status && <span className="status-pill">{status === "verfuegbar" ? "Verfügbar" : "Vielleicht"}</span>}
                   {isScheduled && <span className="scheduled-tag">📌 Rufdienst eingeplant</span>}
                   {isScheduledBackup && <span className="scheduled-tag scheduled-tag-backup">📌 Backup eingeplant</span>}
@@ -2130,10 +2314,16 @@ function VerfuegbarTab({ data, currentPerson, setCurrentPerson, updatePhone, vie
 
 /* ---------- Tab: Admin ---------- */
 
-function AdminTab({ data, viewYear, viewMonth, weeks, goPrevMonth, goNextMonth, setDayRole, resetMonthData, updateMemberName, updateMemberColor }) {
+function AdminTab({ data, viewYear, viewMonth, weeks, goPrevMonth, goNextMonth, setDayRole, resetMonthData, updateMemberName, updateMemberColor, archiveMember, restoreMember, deleteMemberPermanently }) {
   const today = todayStr();
   const [showPeople, setShowPeople] = useState(false);
   const [nameDrafts, setNameDrafts] = useState({});
+  const [weekDialog, setWeekDialog] = useState(null);
+  const [manualDialog, setManualDialog] = useState(null);
+  const [manualWholeWeek, setManualWholeWeek] = useState(false);
+
+  const activeMembers = data.members.filter((m) => !m.archived);
+  const archivedMembers = data.members.filter((m) => m.archived);
 
   function nameValue(m) {
     return nameDrafts[m.id] !== undefined ? nameDrafts[m.id] : m.name;
@@ -2144,22 +2334,58 @@ function AdminTab({ data, viewYear, viewMonth, weeks, goPrevMonth, goNextMonth, 
     setNameDrafts((d) => { const n = { ...d }; delete n[m.id]; return n; });
   }
 
+  function handleChipClick(dateStr, personId, role) {
+    if (role === "backup" && data.assignments[dateStr] === personId) return; // Primär kann nicht zugleich Backup sein
+    if (dowMon0(dateStr) === 0) setWeekDialog({ dateStr, personId, role });
+    else setDayRole(dateStr, personId, role, "day");
+  }
+  function confirmWeek(scope) {
+    if (!weekDialog) return;
+    setDayRole(weekDialog.dateStr, weekDialog.personId, weekDialog.role, scope);
+    setWeekDialog(null);
+  }
+  function openManual(dateStr) { setManualDialog(dateStr); setManualWholeWeek(false); }
+  function closeManual() { setManualDialog(null); setManualWholeWeek(false); }
+  function manualAdd(personId, role) {
+    const scope = manualWholeWeek && dowMon0(manualDialog) === 0 ? "week" : "day";
+    setDayRole(manualDialog, personId, role, scope);
+    closeManual();
+  }
+
+  function askArchive(m) {
+    if (window.confirm(`${m.name} aus dem Team entfernen?\n\nDie Person wird archiviert: Sie verschwindet aus Auswahl und Planung, vergangene Dienste bleiben für die Statistik erhalten. Zukünftige Einplanungen (ab heute) werden entfernt. Zum Jahreswechsel werden alle Daten der Person endgültig gelöscht.`)) {
+      archiveMember(m.id);
+    }
+  }
+  function askDeletePermanent(m) {
+    if (window.confirm(`${m.name} jetzt endgültig löschen?\n\nAlle Dienste, Verfügbarkeiten und Zählungen dieser Person werden unwiderruflich entfernt.`)) {
+      deleteMemberPermanently(m.id);
+    }
+  }
+
+  const wdIsRemoval = weekDialog
+    ? (weekDialog.role === "primary"
+        ? data.assignments[weekDialog.dateStr] === weekDialog.personId
+        : (data.backupAssignments || {})[weekDialog.dateStr] === weekDialog.personId)
+    : false;
+  const manualCandidates = manualDialog ? manualCandidatesForDay(data, manualDialog) : [];
+
   return (
     <div className="tab-content">
       <div className="admin-iststand-panel">
-        <h3 className="admin-iststand-title">Aktueller Ist-Stand</h3>
+        <h3 className="admin-iststand-title">Aktueller Ist-Stand {viewYear}</h3>
         <div className="admin-iststand-tiles">
-          {data.members.map((m) => (
+          {activeMembers.map((m) => (
             <div key={m.id} className="admin-iststand-tile" style={{ borderColor: colorFor(data.members, m.id) }}>
               <div className="admin-iststand-tile-name" style={{ color: colorFor(data.members, m.id) }}>{m.name}</div>
-              <div className="admin-iststand-tile-count">{computeGesamt(data, m.id)}</div>
+              <div className="admin-iststand-tile-count">{computeYearCount(data, m.id, viewYear)}</div>
             </div>
           ))}
         </div>
       </div>
 
       <p className="hint-text">
-        Klick auf einen Namen an einem <strong>Montag</strong> weist ihn für die <strong>ganze Woche</strong> als Rufdienst zu. Klick auf einen Namen an einem <strong>anderen Tag</strong> gilt nur für diesen einen Tag (z. B. um das Wochenende an jemand anderen zu vergeben). <strong>Linksklick</strong> = Primär, <strong>Rechtsklick</strong> = Backup. Nochmaliger Klick entfernt die Zuweisung wieder. Es werden nur Personen angezeigt, die für den jeweiligen Tag Verfügbarkeit gemeldet haben.
+        <strong>Linksklick</strong> auf einen Namen = Primär, <strong>Rechtsklick</strong> = Backup, nochmaliger Klick entfernt die Zuweisung wieder. Jeder Tag wird einzeln geplant. Am <strong>Montag</strong> öffnet sich zusätzlich die Frage „Für die ganze Woche planen?". Mit dem <strong>„+"</strong> in einem Tag lässt sich eine Person ohne gemeldete Verfügbarkeit manuell einplanen – sie ist dann mit <strong>„M"</strong> markiert.
       </p>
 
       <div className="legend-row">
@@ -2167,6 +2393,7 @@ function AdminTab({ data, viewYear, viewMonth, weeks, goPrevMonth, goNextMonth, 
         <span className="legend-chip"><span className="legend-dot legend-dot-viell"></span>Vielleicht</span>
         <span className="legend-chip"><span className="assign-role-tag assign-role-primary">P</span> Primär</span>
         <span className="legend-chip"><span className="assign-role-tag assign-role-backup">B</span> Backup</span>
+        <span className="legend-chip"><span className="admin-manual-tag">M</span> manuell eingeplant</span>
         <span className="legend-chip">⏱ Vorlaufzeit gemeldet</span>
       </div>
 
@@ -2185,26 +2412,35 @@ function AdminTab({ data, viewYear, viewMonth, weeks, goPrevMonth, goNextMonth, 
             <div className={`cell cell-admin ${inMonth ? "" : "cell-out"} ${isToday ? "cell-today" : ""} ${isMon ? "cell-admin-monday" : ""}`}>
               <div className="cell-top">
                 <span className="cell-daynum">{parseDstr(dateStr).d}</span>
-                {isMon && <span className="admin-week-hint" title="Klick hier wirkt auf die ganze Woche">Wo</span>}
+                <button
+                  type="button"
+                  className="admin-add-btn"
+                  title="Person manuell einplanen (ohne gemeldete Verfügbarkeit)"
+                  onClick={() => openManual(dateStr)}
+                >
+                  +
+                </button>
               </div>
               <div className="admin-chip-list">
                 {available.length === 0 && <span className="admin-no-avail">–</span>}
-                {available.map(({ member, status, hasLeadTime, note }) => {
+                {available.map(({ member, status, hasLeadTime, note, manual, archived }) => {
                   const isPrimary = primaryId === member.id;
                   const isBackup = backupId === member.id;
                   return (
                     <button
                       key={member.id}
                       type="button"
-                      className={`admin-mini-chip ${status ? "admin-mini-chip-" + status : ""} ${isPrimary ? "admin-mini-chip-primary" : ""} ${isBackup ? "admin-mini-chip-backup" : ""}`}
+                      disabled={archived}
+                      className={`admin-mini-chip ${status ? "admin-mini-chip-" + status : ""} ${manual ? "admin-mini-chip-manual" : ""} ${archived ? "admin-mini-chip-archived" : ""} ${isPrimary ? "admin-mini-chip-primary" : ""} ${isBackup ? "admin-mini-chip-backup" : ""}`}
                       style={isPrimary || isBackup ? { borderColor: colorFor(data.members, member.id) } : {}}
-                      onClick={(e) => { e.stopPropagation(); setDayRole(dateStr, member.id, "primary"); }}
-                      onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setDayRole(dateStr, member.id, "backup"); }}
-                      title={`${member.name}${isMon ? " – wirkt auf die ganze Woche" : ""}${note ? " – Hinweis: " + note : ""}`}
+                      onClick={(e) => { e.stopPropagation(); handleChipClick(dateStr, member.id, "primary"); }}
+                      onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); handleChipClick(dateStr, member.id, "backup"); }}
+                      title={`${member.name}${manual ? " – manuell eingeplant (keine Verfügbarkeit gemeldet)" : ""}${archived ? " – archiviert" : ""}${note ? " – Hinweis: " + note : ""}`}
                     >
                       {shortMemberName(data.members, member)}
                       {isPrimary && <span className="admin-role-dot admin-role-dot-p">P</span>}
                       {isBackup && <span className="admin-role-dot admin-role-dot-b">B</span>}
+                      {manual && <span className="admin-manual-tag">M</span>}
                       {hasLeadTime && <span className="admin-lead-dot">⏱</span>}
                       {note && <span className="admin-note-dot">❗</span>}
                     </button>
@@ -2222,11 +2458,11 @@ function AdminTab({ data, viewYear, viewMonth, weeks, goPrevMonth, goNextMonth, 
 
       <div className="people-manage-panel">
         <button className="btn btn-ghost" onClick={() => setShowPeople((s) => !s)}>
-          {showPeople ? "Personen ausblenden" : "Namen & Farben verwalten"}
+          {showPeople ? "Personen ausblenden" : "Personen verwalten (Namen, Farben, Entfernen)"}
         </button>
         {showPeople && (
           <div className="people-manage-list">
-            {data.members.map((m) => (
+            {activeMembers.map((m) => (
               <div className="people-manage-row" key={m.id}>
                 <input
                   type="color"
@@ -2242,11 +2478,79 @@ function AdminTab({ data, viewYear, viewMonth, weeks, goPrevMonth, goNextMonth, 
                   onBlur={() => commitName(m)}
                   onKeyDown={(e) => { if (e.key === "Enter") { e.currentTarget.blur(); } }}
                 />
+                <button type="button" className="mini-btn mat-delete" title="Aus dem Team entfernen" onClick={() => askArchive(m)}>Entfernen</button>
               </div>
             ))}
+
+            {archivedMembers.length > 0 && (
+              <div className="people-archived">
+                <div className="people-archived-title">Archiviert</div>
+                {archivedMembers.map((m) => (
+                  <div className="people-archived-row" key={m.id}>
+                    <div className="people-archived-text">
+                      <span className="people-archived-name">{m.name}</span>
+                      <span className="people-archived-info">
+                        {m.archivedAt ? `seit ${formatDateDe(m.archivedAt)} · wird zum Jahreswechsel (01.01.${Number(m.archivedAt.slice(0, 4)) + 1}) endgültig gelöscht` : "archiviert"}
+                      </span>
+                    </div>
+                    <button type="button" className="mini-btn" onClick={() => restoreMember(m.id)}>Wiederherstellen</button>
+                    <button type="button" className="mini-btn mat-delete" onClick={() => askDeletePermanent(m)}>Endgültig löschen</button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
+
+      {weekDialog && (
+        <div className="modal-backdrop" onClick={() => setWeekDialog(null)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <h3 className="modal-title">{wdIsRemoval ? "Für die ganze Woche entfernen?" : "Für die ganze Woche planen?"}</h3>
+            <p className="modal-text">
+              {memberName(data, weekDialog.personId)} – {weekDialog.role === "primary" ? "Primär" : "Backup"} · Montag, {formatDateDe(weekDialog.dateStr)}
+            </p>
+            <div className="modal-actions">
+              <button className="btn btn-ghost" onClick={() => confirmWeek("day")}>Nur Montag</button>
+              <button className="btn btn-primary" onClick={() => confirmWeek("week")}>Ganze Woche</button>
+              <button className="btn btn-ghost" onClick={() => setWeekDialog(null)}>Abbrechen</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {manualDialog && (
+        <div className="modal-backdrop" onClick={closeManual}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <h3 className="modal-title">Person manuell einplanen</h3>
+            <p className="modal-text">
+              {WEEKDAY_FULL[dowMon0(manualDialog)]}, {formatDateDe(manualDialog)} – Personen ohne gemeldete Verfügbarkeit
+            </p>
+            {dowMon0(manualDialog) === 0 && (
+              <label className="modal-check">
+                <input type="checkbox" checked={manualWholeWeek} onChange={(e) => setManualWholeWeek(e.target.checked)} />
+                Für die ganze Woche
+              </label>
+            )}
+            {manualCandidates.length === 0 ? (
+              <p className="hint-text">Alle aktiven Personen sind für diesen Tag bereits verfügbar oder eingeplant.</p>
+            ) : (
+              <div className="modal-list">
+                {manualCandidates.map((m) => (
+                  <div className="modal-row" key={m.id}>
+                    <span className="modal-row-name" style={{ color: colorFor(data.members, m.id) }}>{m.name}</span>
+                    <button className="btn btn-ghost" onClick={() => manualAdd(m.id, "primary")}>Primär</button>
+                    <button className="btn btn-ghost" onClick={() => manualAdd(m.id, "backup")}>Backup</button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="modal-actions">
+              <button className="btn btn-ghost" onClick={closeManual}>Schließen</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -2333,7 +2637,7 @@ function UebersichtTab({ data, viewYear, viewMonth, weeks, goPrevMonth, goNextMo
       />
 
       <div className="legend-row">
-        {data.members.map((m) => (
+        {data.members.filter((m) => !m.archived).map((m) => (
           <span key={m.id} className="legend-chip">
             <span className="legend-dot" style={{ background: colorFor(data.members, m.id) }}></span>{m.name}
           </span>
@@ -2346,10 +2650,6 @@ function UebersichtTab({ data, viewYear, viewMonth, weeks, goPrevMonth, goNextMo
 /* ---------- Tab: Statistik ---------- */
 
 function StatistikTab({ data, statYear, setStatYear, availableYears, stats, updateStatsBaseline }) {
-  function baselineFor(personId) {
-    return (data.statsBaseline || {})[personId] || { count: 0, asOf: "" };
-  }
-
   return (
     <div className="tab-content">
       <div className="panel">
@@ -2360,7 +2660,7 @@ function StatistikTab({ data, statYear, setStatYear, availableYears, stats, upda
       </div>
 
       <p className="hint-text">
-        „Manueller Ist-Stand" trägt eine Anzahl bereits geleisteter Dienste bis zu einem bestimmten Datum ein (z. B. aus der Zeit vor dieser App). Die Spalte „Gesamt" zählt dazu nur die in der App eingetragenen Dienste, die <strong>nach</strong> diesem „Stand vom"-Datum liegen – Tage davor werden nicht doppelt gezählt. „Gesamt" ist unabhängig vom oben gewählten Jahr.
+        Jedes Kalenderjahr wird getrennt gezählt: Alle eingetragenen Tage zählen bis zum 31.12., am 01.01. beginnt eine neue Zählung bei 0 – frühere Jahre lassen sich oben auswählen. Der „Manuelle Ist-Stand" gilt nur für das ausgewählte Jahr: Er trägt die Anzahl bereits geleisteter Dienste bis zum „Stand vom"-Datum ein, danach zählen nur die in der App eingetragenen Dienste dazu (Tage davor werden nicht doppelt gezählt). Feiertage und Backup-Tage zählen nur in der App eingetragene Tage.
       </p>
 
       <div className="stats-table-wrap">
@@ -2371,36 +2671,37 @@ function StatistikTab({ data, statYear, setStatYear, availableYears, stats, upda
               <th>Diensttage {statYear}</th>
               <th>davon an Feiertagen</th>
               <th>Backup-Tage</th>
-              <th>Manueller Ist-Stand</th>
+              <th>Manueller Ist-Stand {statYear}</th>
               <th>Stand vom</th>
-              <th>Gesamt</th>
             </tr>
           </thead>
           <tbody>
             {data.members.map((m) => {
-              const s = stats[m.id] || { total: 0, holiday: 0, backup: 0 };
-              const baseline = baselineFor(m.id);
+              const st = stats[m.id] || { count: 0, holiday: 0, backup: 0 };
+              const baseline = baselineFor(data, m.id, statYear);
               return (
                 <tr key={m.id}>
-                  <td style={{ color: colorFor(data.members, m.id) }}>{m.name}</td>
-                  <td>{s.total}</td>
-                  <td>{s.holiday > 0 ? `${s.holiday}` : "–"}</td>
-                  <td>{s.backup > 0 ? `${s.backup}` : "–"}</td>
+                  <td style={{ color: colorFor(data.members, m.id) }}>
+                    {m.name}{m.archived ? <span className="stats-archived-tag"> (archiviert)</span> : null}
+                  </td>
+                  <td className="stats-total-cell">{st.count}</td>
+                  <td>{st.holiday > 0 ? `${st.holiday}` : "–"}</td>
+                  <td>{st.backup > 0 ? `${st.backup}` : "–"}</td>
                   <td>
                     <NumberStepper
                       min={0}
                       value={String(baseline.count || "")}
-                      onChange={(val) => updateStatsBaseline(m.id, { count: Number(val) || 0 })}
+                      onChange={(val) => updateStatsBaseline(m.id, statYear, { count: Number(val) || 0 })}
                     />
                   </td>
                   <td>
                     <input
                       type="date" className="text-input stats-date-input"
+                      min={`${statYear}-01-01`} max={`${statYear}-12-31`}
                       value={baseline.asOf || ""}
-                      onChange={(e) => updateStatsBaseline(m.id, { asOf: e.target.value })}
+                      onChange={(e) => updateStatsBaseline(m.id, statYear, { asOf: e.target.value })}
                     />
                   </td>
-                  <td className="stats-total-cell">{computeGesamt(data, m.id)}</td>
                 </tr>
               );
             })}
@@ -2528,7 +2829,7 @@ function MaterialTab({ data, materialImages, addBatch, consumeQty, deleteBatch, 
             <input className="text-input" type="date" value={checkDate} onChange={(e) => setCheckDate(e.target.value)} />
             <select className="select" value={checkPerson} onChange={(e) => setCheckPerson(e.target.value)}>
               <option value="">– wer? (optional) –</option>
-              {data.members.map((m) => (<option key={m.id} value={m.id}>{m.name}</option>))}
+              {data.members.filter((m) => !m.archived).map((m) => (<option key={m.id} value={m.id}>{m.name}</option>))}
             </select>
             <input className="text-input" placeholder="Notiz (optional)" value={checkNote} onChange={(e) => setCheckNote(e.target.value)} />
             <button className="btn btn-primary" onClick={submitCheck}>Speichern</button>
@@ -2904,6 +3205,7 @@ function Logo({ size = 40 }) {
 
 const rootEl = document.getElementById("root");
 ReactDOM.createRoot(rootEl).render(<App />);
+
 
 
 
