@@ -739,6 +739,15 @@
       .mode-btn-tpz.active { background: var(--lung); border-color: var(--lung); }
       .mode-btn-all.active { background: var(--ink); border-color: var(--ink); color: var(--bg); }
       @media (max-width: 560px) { .mode-bar { padding: 10px; } .mode-btn { max-width: none; } }
+      /* Untermenü: PC = in der Kopfleiste, Handy/schmal = unter den Hauptreitern */
+      .tab-nav-below { display: none; padding: 10px 20px; background: var(--panel); border-bottom: 1px solid var(--line); }
+      .tab-nav-tpz .tab-btn.active { background: var(--lung); border-color: var(--lung); }
+      @media (max-width: 860px) {
+        .tab-nav-header { display: none; }
+        .tab-nav-below { display: flex; }
+        .tab-nav-below .tab-btn { flex: 1 1 auto; }
+      }
+      @media (max-width: 560px) { .tab-nav-below { padding: 10px; } }
 
       /* ---- TPZ-Planung (eigener Bereich, getrennt vom Rufdienst) ---- */
       .tpz-banner { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--lung); border-radius: 4px; padding: 10px 14px; }
@@ -1455,6 +1464,7 @@ function App() {
   const clickTimers = useRef({});
 
   const [tab, setTab] = useState("uebersicht");
+  const [tpzSection, setTpzSection] = useState("plan");
   const [mode, setMode] = useState("rd"); // "rd" = Rufdienst, "tpz" = TPZ-Planung, "all" = Gesamtübersicht
   const now = new Date();
   const [viewYear, setViewYear] = useState(now.getFullYear());
@@ -2155,6 +2165,23 @@ function App() {
 
   /* ---------- Render: App ---------- */
 
+  // Untermenü des jeweiligen Hauptbereichs: am PC in der Kopfleiste, am Handy unter den Hauptreitern
+  const rdNavItems = [["uebersicht", "Übersicht"], ["einsatz", "Im Einsatz"], ["material", "Material"], ["verfuegbar", "Verfügbarkeit"], ["admin", "Admin"], ["statistik", "Statistik"]];
+  const tpzNavItems = [["plan", "Plan"], ["verfuegbar", "Verfügbarkeit"], ["admin", "Admin"], ["statistik", "Statistik"]];
+  const renderModeNav = (where) => {
+    const isTpz = mode === "tpz";
+    const items = isTpz ? tpzNavItems : rdNavItems;
+    const current = isTpz ? tpzSection : tab;
+    const choose = isTpz ? setTpzSection : setTab;
+    return (
+      <nav className={`tab-nav ${where} ${isTpz ? "tab-nav-tpz" : ""}`}>
+        {items.map(([key, label]) => (
+          <button key={key} className={`tab-btn ${current === key ? "active" : ""}`} onClick={() => choose(key)}>{label}</button>
+        ))}
+      </nav>
+    );
+  };
+
   return (
     <div className="tx-app">
       <header className="app-header">
@@ -2165,16 +2192,7 @@ function App() {
             <div className="brand-sub">{mode === "tpz" ? "TPZ-Planung" : mode === "all" ? "Gesamtübersicht" : "Rufdienstplan"}</div>
           </div>
         </div>
-        {mode === "rd" && (
-        <nav className="tab-nav">
-          <button className={`tab-btn ${tab === "uebersicht" ? "active" : ""}`} onClick={() => setTab("uebersicht")}>Übersicht</button>
-          <button className={`tab-btn ${tab === "einsatz" ? "active" : ""}`} onClick={() => setTab("einsatz")}>Im Einsatz</button>
-          <button className={`tab-btn ${tab === "material" ? "active" : ""}`} onClick={() => setTab("material")}>Material</button>
-          <button className={`tab-btn ${tab === "verfuegbar" ? "active" : ""}`} onClick={() => setTab("verfuegbar")}>Verfügbarkeit</button>
-          <button className={`tab-btn ${tab === "admin" ? "active" : ""}`} onClick={() => setTab("admin")}>Admin</button>
-          <button className={`tab-btn ${tab === "statistik" ? "active" : ""}`} onClick={() => setTab("statistik")}>Statistik</button>
-        </nav>
-        )}
+        {mode !== "all" && renderModeNav("tab-nav-header")}
         <button
           className="btn btn-ghost lock-btn"
           title="Zurück zur gesperrten Startseite"
@@ -2193,9 +2211,10 @@ function App() {
         <button className={`mode-btn mode-btn-tpz ${mode === "tpz" ? "active" : ""}`} onClick={() => setMode("tpz")}>TPZ-Planung</button>
         <button className={`mode-btn mode-btn-all ${mode === "all" ? "active" : ""}`} onClick={() => setMode("all")}>Alle</button>
       </div>
+      {mode !== "all" && renderModeNav("tab-nav-below")}
 
       <main className="app-main">
-        {mode === "tpz" && <TpzTab />}
+        {mode === "tpz" && <TpzTab section={tpzSection} />}
         {mode === "all" && <AlleTab data={data} />}
         {mode === "rd" && (<>
         {tab === "verfuegbar" && (
@@ -3252,11 +3271,10 @@ function tpzReported(data, pid, ds) {
   return e && (e.status === "verfuegbar" || e.status === "vielleicht") ? e : null;
 }
 
-function TpzTab() {
+function TpzTab({ section }) {
   const [data, setData] = useState(null);
   const [online, setOnline] = useState(null); // null = lädt, true = Speicher erreichbar, false = nicht erreichbar (Testmodus)
   const [saveError, setSaveError] = useState("");
-  const [section, setSection] = useState("plan");
   const now = new Date();
   const [viewYear, setViewYear] = useState(now.getFullYear());
   const [viewMonth, setViewMonth] = useState(now.getMonth());
@@ -3441,15 +3459,6 @@ function TpzTab() {
   const nav = { viewYear, viewMonth, weeks, goPrevMonth, goNextMonth };
   return (
     <div className="tab-content">
-      <div className="tpz-banner">
-        <div className="tpz-banner-title">TPZ – Transplantationszentrum</div>
-        <div className="tpz-banner-sub">Reine Dienstplanung (ganze Tage). Eigene Personenliste, getrennt vom Rufdienst.</div>
-      </div>
-      <div className="tpz-subnav">
-        {[["plan", "Plan"], ["verfuegbar", "Verfügbarkeit"], ["admin", "Admin"], ["statistik", "Statistik"]].map(([key, label]) => (
-          <button key={key} className={`tpz-subbtn ${section === key ? "active" : ""}`} onClick={() => setSection(key)}>{label}</button>
-        ))}
-      </div>
       {online === false && (
         <div className="tpz-error">
           <strong>Speicher nicht erreichbar.</strong> Die Verbindung zu „/api/doc“ fehlt (z. B. bei einer lokal geöffneten Datei oder einer Vorschau ohne Netlify-Funktionen). Die TPZ-Planung läuft im Testmodus: Eingaben werden <strong>nicht gespeichert</strong> und gehen beim Neuladen verloren. Auf der echten Netlify-Seite wird automatisch gespeichert.
