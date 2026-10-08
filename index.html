@@ -731,7 +731,91 @@
 
 
 
-</style>
+
+      /* ---- Haupt-Umschalter Rufdienst / TPZ-Planung ---- */
+      .mode-bar { display: flex; gap: 8px; padding: 10px 20px; background: var(--panel); border-bottom: 1px solid var(--line); }
+      .mode-btn { flex: 1; max-width: 220px; background: transparent; border: 2px solid var(--line); color: var(--muted); padding: 9px 14px; font-size: 14px; font-family: inherit; font-weight: 700; border-radius: 4px; cursor: pointer; }
+      .mode-btn.active { background: var(--heart); border-color: var(--heart); color: #fff; }
+      .mode-btn-tpz.active { background: var(--lung); border-color: var(--lung); }
+      .mode-btn-all.active { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+      @media (max-width: 560px) { .mode-bar { padding: 10px; } .mode-btn { max-width: none; } }
+
+      /* ---- TPZ-Planung (eigener Bereich, getrennt vom Rufdienst) ---- */
+      .tpz-banner { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--lung); border-radius: 4px; padding: 10px 14px; }
+      .tpz-banner-title { font-family: 'Fraunces', serif; font-weight: 600; font-size: 15px; color: var(--lung); }
+      .tpz-banner-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+      .tpz-subnav { display: flex; gap: 4px; flex-wrap: wrap; }
+      .tpz-subbtn { background: transparent; border: 1px solid var(--line); color: var(--muted); padding: 6px 12px; font-size: 13px; font-family: inherit; font-weight: 500; border-radius: 3px; cursor: pointer; }
+      .tpz-subbtn.active { background: var(--lung); border-color: var(--lung); color: #fff; }
+      .tpz-today { background: var(--panel); border: 2px solid var(--lung); border-radius: 4px; padding: 14px 16px; }
+      .tpz-today-names { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; }
+      .tpz-today-name { font-family: 'Fraunces', serif; font-weight: 600; font-size: 24px; line-height: 1.25; }
+      .tpz-today-none { color: var(--muted); font-size: 16px; margin-top: 6px; }
+      .tpz-today-note { font-size: 13px; color: var(--heart); font-weight: 600; margin-top: 4px; }
+      .cell-tpz-sched { box-shadow: 0 0 0 2px var(--lung) inset; }
+      .tpz-sched-tag { display: block; font-size: 9px; font-weight: 700; color: var(--lung); }
+      .tpz-plan-name { display: block; font-size: 10.5px; font-weight: 600; line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .tpz-hol { color: var(--amber); font-size: 9px; font-weight: 700; }
+      .tpz-assigned-chip { border-color: var(--lung) !important; background: var(--surface) !important; }
+      .tpz-admin-cell .admin-mini-chip { max-width: 100%; overflow: hidden; }
+      .tpz-dot { font-size: 8px; font-weight: 800; padding: 0 3px; border-radius: 6px; color: #fff; background: var(--lung); }
+      .tpz-notes { background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; }
+      .tpz-notes-title { font-family: 'Fraunces', serif; font-size: 14px; font-weight: 600; margin: 0; }
+      .tpz-note-line { font-size: 13px; line-height: 1.4; }
+      .tpz-note-line b { font-weight: 600; }
+      .tpz-team-add { display: flex; gap: 8px; flex-wrap: wrap; width: 100%; max-width: 520px; }
+      .tpz-team-add .text-input { flex: 1; min-width: 160px; }
+      .tpz-empty { background: var(--panel); border: 1px dashed var(--line); border-radius: 4px; padding: 14px 16px; font-size: 13px; color: var(--muted); }
+      .tpz-error { background: var(--bad-bg); border: 1px solid var(--heart); border-radius: 4px; padding: 10px 14px; font-size: 13px; }
+      .tpz-month-table th, .tpz-month-table td { padding: 8px 8px; text-align: center; }
+      .tpz-month-table th:first-child, .tpz-month-table td:first-child { text-align: left; }
+      @media (max-width: 560px) {
+        .tpz-today-name { font-size: 20px; }
+        .tpz-plan-name { font-size: 9.5px; }
+      }
+
+      /* ---- Alle (Gesamtübersicht) ---- */
+      .alle-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+      .alle-card { background: var(--panel); border: 2px solid var(--line); border-radius: 4px; padding: 14px 16px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+      .alle-card-rd { border-color: var(--heart); }
+      .alle-card-tpz { border-color: var(--lung); }
+      .alle-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+      .alle-card-rd .alle-label { color: var(--heart); }
+      .alle-card-tpz .alle-label { color: var(--lung); }
+      .alle-date { font-size: 12px; color: var(--muted); }
+      .alle-name { font-family: 'Fraunces', serif; font-weight: 600; font-size: 26px; line-height: 1.25; margin-top: 4px; overflow-wrap: anywhere; }
+      .alle-names { display: flex; flex-direction: column; }
+      .alle-none { color: var(--muted); font-size: 16px; margin-top: 6px; }
+      .alle-sub { font-size: 13px; margin-top: 8px; }
+      .alle-sub-label { color: var(--muted); }
+      .alle-tel { color: var(--green); font-weight: 600; }
+      .alle-panel { background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+      .alle-title { font-family: 'Fraunces', serif; font-size: 16px; font-weight: 600; margin: 0; display: flex; align-items: center; gap: 8px; }
+      .alle-count { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 700; border-radius: 10px; padding: 1px 8px; }
+      .alle-count-bad { background: var(--bad-bg); color: var(--heart); }
+      .alle-count-warn { background: var(--amber-bg); color: var(--amber-text); }
+      .alle-ok { background: var(--green-bg); color: var(--green); border-radius: 4px; padding: 8px 12px; font-size: 13px; font-weight: 600; }
+      .alle-check { font-size: 13px; color: var(--muted); }
+      .alle-check-overdue { color: var(--amber-text); font-weight: 600; }
+      .alle-list { display: flex; flex-direction: column; }
+      .alle-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); }
+      .alle-item:first-child { border-top: none; }
+      .alle-item-main { min-width: 0; }
+      .alle-item-name { font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+      .alle-item-sub { font-size: 12px; color: var(--muted); }
+      .alle-item-qty { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; flex-shrink: 0; }
+      .alle-missing { font-size: 11px; color: var(--muted); }
+      .alle-week { display: flex; flex-direction: column; }
+      .alle-week-row { display: grid; grid-template-columns: 70px 1fr 1fr; gap: 8px; padding: 7px 4px; border-top: 1px solid var(--line); font-size: 13px; align-items: baseline; }
+      .alle-week-head { border-top: none; font-size: 11px; color: var(--muted); font-weight: 600; }
+      .alle-week-today { background: var(--bg); }
+      .alle-week-day { font-weight: 600; white-space: nowrap; }
+      .alle-dash { color: var(--muted); }
+      @media (max-width: 560px) {
+        .alle-name { font-size: 22px; }
+        .alle-week-row { grid-template-columns: 62px 1fr 1fr; }
+      }
+    </style>
 </head>
 <body>
 <div id="root"></div>
@@ -1371,6 +1455,7 @@ function App() {
   const clickTimers = useRef({});
 
   const [tab, setTab] = useState("uebersicht");
+  const [mode, setMode] = useState("rd"); // "rd" = Rufdienst, "tpz" = TPZ-Planung, "all" = Gesamtübersicht
   const now = new Date();
   const [viewYear, setViewYear] = useState(now.getFullYear());
   const [viewMonth, setViewMonth] = useState(now.getMonth());
@@ -2077,9 +2162,10 @@ function App() {
           <Logo size={36} />
           <div>
             <div className="brand-title">Team Thoraxorgane</div>
-            <div className="brand-sub">Rufdienstplan</div>
+            <div className="brand-sub">{mode === "tpz" ? "TPZ-Planung" : mode === "all" ? "Gesamtübersicht" : "Rufdienstplan"}</div>
           </div>
         </div>
+        {mode === "rd" && (
         <nav className="tab-nav">
           <button className={`tab-btn ${tab === "uebersicht" ? "active" : ""}`} onClick={() => setTab("uebersicht")}>Übersicht</button>
           <button className={`tab-btn ${tab === "einsatz" ? "active" : ""}`} onClick={() => setTab("einsatz")}>Im Einsatz</button>
@@ -2088,6 +2174,7 @@ function App() {
           <button className={`tab-btn ${tab === "admin" ? "active" : ""}`} onClick={() => setTab("admin")}>Admin</button>
           <button className={`tab-btn ${tab === "statistik" ? "active" : ""}`} onClick={() => setTab("statistik")}>Statistik</button>
         </nav>
+        )}
         <button
           className="btn btn-ghost lock-btn"
           title="Zurück zur gesperrten Startseite"
@@ -2101,7 +2188,16 @@ function App() {
         </button>
       </header>
 
+      <div className="mode-bar">
+        <button className={`mode-btn ${mode === "rd" ? "active" : ""}`} onClick={() => setMode("rd")}>Rufdienst</button>
+        <button className={`mode-btn mode-btn-tpz ${mode === "tpz" ? "active" : ""}`} onClick={() => setMode("tpz")}>TPZ-Planung</button>
+        <button className={`mode-btn mode-btn-all ${mode === "all" ? "active" : ""}`} onClick={() => setMode("all")}>Alle</button>
+      </div>
+
       <main className="app-main">
+        {mode === "tpz" && <TpzTab />}
+        {mode === "all" && <AlleTab data={data} />}
+        {mode === "rd" && (<>
         {tab === "verfuegbar" && (
           <VerfuegbarTab
             data={data}
@@ -2188,6 +2284,7 @@ function App() {
             resetEinsatzChecklist={resetEinsatzChecklist}
           />
         )}
+        </>)}
       </main>
     </div>
   );
@@ -3124,6 +3221,912 @@ function EinsatzTab({ data, einsatz, setEinsatzOrgan, setItemQty, markItemsPacke
           </p>
         </>
       )}
+    </div>
+  );
+}
+
+/* ---------- Tab: TPZ (reine Dienstplanung, komplett getrennt vom Rufdienst) ----------
+   Eigener Datenspeicher "tpz/state" (eigene Mitarbeitenden-Liste, eigene Verfügbarkeiten, eigener Plan).
+   Es werden keine Daten aus "app/state" gelesen oder verändert. Dienste gelten für ganze Tage. */
+
+const TPZ_DOC = "tpz/state";
+const TPZ_COLORS = ["#3E7C8A", "#B23A32", "#C98A2E", "#5B7A4F", "#6B5A85", "#3F5D7D", "#A85C32", "#4F7CAC", "#A0527C", "#6B7F2A"];
+
+function tpzDefaultData() {
+  return { members: [], availability: {}, plan: {} };
+}
+
+function tpzNormalize(remote) {
+  const d = remote && typeof remote === "object" ? remote : {};
+  return {
+    members: Array.isArray(d.members) ? d.members : [],
+    availability: d.availability && typeof d.availability === "object" ? d.availability : {},
+    plan: d.plan && typeof d.plan === "object" ? d.plan : {},
+  };
+}
+
+function tpzEntryIsEmpty(e) { return !e || (!e.status && !e.note); }
+
+function tpzReported(data, pid, ds) {
+  const e = (data.availability[pid] || {})[ds];
+  return e && (e.status === "verfuegbar" || e.status === "vielleicht") ? e : null;
+}
+
+function TpzTab() {
+  const [data, setData] = useState(null);
+  const [online, setOnline] = useState(null); // null = lädt, true = Speicher erreichbar, false = nicht erreichbar (Testmodus)
+  const [saveError, setSaveError] = useState("");
+  const [section, setSection] = useState("plan");
+  const now = new Date();
+  const [viewYear, setViewYear] = useState(now.getFullYear());
+  const [viewMonth, setViewMonth] = useState(now.getMonth());
+  const [statYear, setStatYear] = useState(now.getFullYear());
+  const [currentPerson, setCurrentPerson] = useState("");
+
+  const dirty = useRef(false);
+  const onlineRef = useRef(null);
+  const offlineEdits = useRef(false);
+  const dataRef = useRef(null);
+  const saveTimer = useRef(null);
+  const clickTimers = useRef({});
+  dataRef.current = data;
+
+  function commit(updater) {
+    // Ohne erreichbaren Speicher wird nichts zum Server geschickt (verhindert, dass ein leerer Stand echte Daten überschreibt)
+    if (onlineRef.current === true) dirty.current = true; else offlineEdits.current = true;
+    setData(updater);
+  }
+
+  // Laden + regelmäßiges Nachladen (ungespeicherte lokale Änderungen werden nicht überschrieben)
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      if (dirty.current) return;
+      try {
+        const res = await apiGetDoc(TPZ_DOC);
+        if (cancelled || dirty.current) return;
+        onlineRef.current = true;
+        offlineEdits.current = false; // Speicher wieder erreichbar: der gespeicherte Stand gilt
+        setOnline(true);
+        setData(res.exists ? tpzNormalize(res.data) : tpzDefaultData());
+      } catch (e) {
+        console.error("TPZ laden fehlgeschlagen", e);
+        if (cancelled) return;
+        onlineRef.current = false;
+        setOnline(false);
+        setData((prev) => prev || tpzDefaultData()); // Testmodus: leere Planung, nur im Browser
+      }
+    }
+    load();
+    const interval = setInterval(load, SYNC_POLL_MS);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, []);
+
+  // Speichern (debounced); beim Verlassen des Tabs wird ein noch offener Stand sofort gesichert
+  useEffect(() => {
+    if (!data || !dirty.current) return;
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    const snapshot = data;
+    saveTimer.current = setTimeout(() => {
+      apiSetDoc(TPZ_DOC, snapshot)
+        .then(() => { if (dataRef.current === snapshot) dirty.current = false; setSaveError(""); })
+        .catch((e) => { console.error("TPZ speichern fehlgeschlagen", e); setSaveError("Speichern fehlgeschlagen – Änderungen sind noch nicht gesichert."); });
+    }, 400);
+  }, [data]);
+  useEffect(() => () => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    if (dirty.current && dataRef.current) apiSetDoc(TPZ_DOC, dataRef.current).catch((e) => console.error("TPZ speichern fehlgeschlagen", e));
+  }, []);
+
+  /* ---------- Mutationen ---------- */
+
+  function setStatus(pid, ds, status) {
+    commit((prev) => {
+      const availability = { ...prev.availability };
+      const person = { ...(availability[pid] || {}) };
+      const entry = { ...(person[ds] || {}) };
+      if (status === null) delete entry.status; else entry.status = status;
+      if (tpzEntryIsEmpty(entry)) delete person[ds]; else person[ds] = entry;
+      availability[pid] = person;
+      return { ...prev, availability };
+    });
+  }
+
+  function setWeekAvailable(pid, mondayStr) {
+    commit((prev) => {
+      const availability = { ...prev.availability };
+      const person = { ...(availability[pid] || {}) };
+      weekFromMonday(mondayStr).forEach((ds) => { person[ds] = { ...(person[ds] || {}), status: "verfuegbar" }; });
+      availability[pid] = person;
+      return { ...prev, availability };
+    });
+  }
+
+  function setNote(pid, ds, note) {
+    commit((prev) => {
+      const availability = { ...prev.availability };
+      const person = { ...(availability[pid] || {}) };
+      const entry = { ...(person[ds] || {}) };
+      if (!note) delete entry.note; else entry.note = note;
+      if (tpzEntryIsEmpty(entry)) delete person[ds]; else person[ds] = entry;
+      availability[pid] = person;
+      return { ...prev, availability };
+    });
+  }
+
+  function handleAvailClick(pid, ds) {
+    if (!pid) return;
+    if (clickTimers.current[ds]) {
+      clearTimeout(clickTimers.current[ds]);
+      delete clickTimers.current[ds];
+      return;
+    }
+    clickTimers.current[ds] = setTimeout(() => {
+      delete clickTimers.current[ds];
+      const cur = ((dataRef.current || {}).availability || {})[pid];
+      const curStatus = cur && cur[ds] ? cur[ds].status : null;
+      setStatus(pid, ds, curStatus === "verfuegbar" ? "vielleicht" : curStatus === "vielleicht" ? null : "verfuegbar");
+    }, 260);
+  }
+
+  function handleAvailDoubleClick(pid, ds) {
+    if (!pid) return;
+    if (clickTimers.current[ds]) { clearTimeout(clickTimers.current[ds]); delete clickTimers.current[ds]; }
+    setStatus(pid, ds, null);
+  }
+
+  function handleNoteClick(pid, ds) {
+    if (!pid || !data) return;
+    const cur = (data.availability[pid] || {})[ds];
+    const input = window.prompt(`Kommentar für ${formatDateDe(ds)}.\nLeer lassen zum Entfernen.`, cur && cur.note ? cur.note : "");
+    if (input === null) return;
+    setNote(pid, ds, input.trim());
+  }
+
+  // Person für einen Tag (oder die ganze Woche) ein- bzw. austragen
+  function toggleAssign(ds, pid, scope) {
+    const dates = scope === "week" ? weekFromMonday(addDaysStr(ds, -dowMon0(ds))) : [ds];
+    commit((prev) => {
+      const adding = !((prev.plan[ds] || []).includes(pid));
+      const plan = { ...prev.plan };
+      dates.forEach((d) => {
+        const list = (plan[d] || []).filter((x) => x !== pid);
+        if (adding) list.push(pid);
+        if (list.length) plan[d] = list; else delete plan[d];
+      });
+      return { ...prev, plan };
+    });
+  }
+
+  function addMember(name) {
+    const clean = name.trim();
+    if (!clean) return false;
+    if (data.members.some((m) => m.name.toLowerCase() === clean.toLowerCase())) { window.alert("Diesen Namen gibt es im TPZ-Team schon."); return false; }
+    commit((prev) => {
+      const used = prev.members.map((m) => m.color);
+      const color = TPZ_COLORS.find((c) => !used.includes(c)) || TPZ_COLORS[prev.members.length % TPZ_COLORS.length];
+      return { ...prev, members: [...prev.members, { id: "t_" + newId(), name: clean, color }] };
+    });
+    return true;
+  }
+  function renameMember(pid, name) {
+    commit((prev) => ({ ...prev, members: prev.members.map((m) => (m.id === pid ? { ...m, name } : m)) }));
+  }
+  function recolorMember(pid, color) {
+    commit((prev) => ({ ...prev, members: prev.members.map((m) => (m.id === pid ? { ...m, color } : m)) }));
+  }
+  function removeMember(pid) {
+    commit((prev) => {
+      const plan = {};
+      Object.entries(prev.plan).forEach(([ds, list]) => { const l = list.filter((x) => x !== pid); if (l.length) plan[ds] = l; });
+      const availability = { ...prev.availability };
+      delete availability[pid];
+      return { ...prev, members: prev.members.filter((m) => m.id !== pid), availability, plan };
+    });
+    if (currentPerson === pid) setCurrentPerson("");
+  }
+
+  function goPrevMonth() {
+    if (viewMonth === 0) { setViewYear(viewYear - 1); setViewMonth(11); } else setViewMonth(viewMonth - 1);
+  }
+  function goNextMonth() {
+    if (viewMonth === 11) { setViewYear(viewYear + 1); setViewMonth(0); } else setViewMonth(viewMonth + 1);
+  }
+  const weeks = useMemo(() => buildMonthGrid(viewYear, viewMonth), [viewYear, viewMonth]);
+
+  if (!data) {
+    return (<div className="tab-content"><p className="loading-text">TPZ lädt …</p></div>);
+  }
+
+  const nav = { viewYear, viewMonth, weeks, goPrevMonth, goNextMonth };
+  return (
+    <div className="tab-content">
+      <div className="tpz-banner">
+        <div className="tpz-banner-title">TPZ – Transplantationszentrum</div>
+        <div className="tpz-banner-sub">Reine Dienstplanung (ganze Tage). Eigene Personenliste, getrennt vom Rufdienst.</div>
+      </div>
+      <div className="tpz-subnav">
+        {[["plan", "Plan"], ["verfuegbar", "Verfügbarkeit"], ["admin", "Admin"], ["statistik", "Statistik"]].map(([key, label]) => (
+          <button key={key} className={`tpz-subbtn ${section === key ? "active" : ""}`} onClick={() => setSection(key)}>{label}</button>
+        ))}
+      </div>
+      {online === false && (
+        <div className="tpz-error">
+          <strong>Speicher nicht erreichbar.</strong> Die Verbindung zu „/api/doc“ fehlt (z. B. bei einer lokal geöffneten Datei oder einer Vorschau ohne Netlify-Funktionen). Die TPZ-Planung läuft im Testmodus: Eingaben werden <strong>nicht gespeichert</strong> und gehen beim Neuladen verloren. Auf der echten Netlify-Seite wird automatisch gespeichert.
+        </div>
+      )}
+      {saveError && <div className="tpz-error">{saveError}</div>}
+
+      {section === "plan" && <TpzPlanView data={data} {...nav} />}
+      {section === "verfuegbar" && (
+        <TpzAvailView
+          data={data} {...nav}
+          currentPerson={currentPerson} setCurrentPerson={setCurrentPerson}
+          handleAvailClick={handleAvailClick} handleAvailDoubleClick={handleAvailDoubleClick}
+          handleNoteClick={handleNoteClick} setWeekAvailable={setWeekAvailable}
+        />
+      )}
+      {section === "admin" && (
+        <TpzAdminView
+          data={data} {...nav}
+          toggleAssign={toggleAssign} addMember={addMember} renameMember={renameMember}
+          recolorMember={recolorMember} removeMember={removeMember}
+        />
+      )}
+      {section === "statistik" && <TpzStatsView data={data} statYear={statYear} setStatYear={setStatYear} />}
+    </div>
+  );
+}
+
+function tpzMember(data, id) { return data.members.find((m) => m.id === id); }
+function tpzFirstName(data, m) { return shortMemberName(data.members, m); }
+
+function TpzPlanView({ data, viewYear, viewMonth, weeks, goPrevMonth, goNextMonth }) {
+  const today = todayStr();
+  const holidays = useMemo(() => new Set([...shHolidays(viewYear - 1), ...shHolidays(viewYear), ...shHolidays(viewYear + 1)]), [viewYear]);
+  const todaysIds = (data.plan[today] || []).filter((id) => tpzMember(data, id));
+  const todaysNotes = todaysIds
+    .map((id) => ({ id, note: ((data.availability[id] || {})[today] || {}).note }))
+    .filter((x) => x.note);
+  const { d } = parseDstr(today);
+
+  return (
+    <>
+      <div className="tpz-today">
+        <div className="today-date">{WEEKDAY_FULL[dowMon0(today)]}, {d}. {MONTH_NAMES[parseDstr(today).m]}</div>
+        <div className="today-label">Heute im TPZ</div>
+        {todaysIds.length ? (
+          <div className="tpz-today-names">
+            {todaysIds.map((id) => (<div key={id} className="tpz-today-name" style={{ color: tpzMember(data, id).color }}>{tpzMember(data, id).name}</div>))}
+          </div>
+        ) : (
+          <div className="tpz-today-none">Niemand eingeplant</div>
+        )}
+        {todaysNotes.map((x) => (<div key={x.id} className="tpz-today-note">❗ {tpzMember(data, x.id).name}: {x.note}</div>))}
+      </div>
+
+      <MonthNav year={viewYear} month={viewMonth} onPrev={goPrevMonth} onNext={goNextMonth} />
+      <CalendarShell
+        weeks={weeks}
+        viewMonth={viewMonth}
+        renderCell={(ds, inMonth) => {
+          const ids = (data.plan[ds] || []).filter((id) => tpzMember(data, id));
+          const isToday = ds === today;
+          return (
+            <div className={`cell cell-readonly ${inMonth ? "" : "cell-out"} ${isToday ? "cell-today" : ""}`}>
+              <span className="cell-daynum">{parseDstr(ds).d}</span>
+              {isToday && <span className="today-tag">HEUTE</span>}
+              {holidays.has(ds) && <span className="tpz-hol">Feiertag</span>}
+              {ids.map((id) => {
+                const m = tpzMember(data, id);
+                return <span key={id} className="tpz-plan-name" style={{ color: m.color }}>{tpzFirstName(data, m)}</span>;
+              })}
+            </div>
+          );
+        }}
+      />
+      {data.members.length === 0 ? (
+        <div className="tpz-empty">Noch niemand im TPZ-Team. Personen werden unter „Admin“ hinzugefügt.</div>
+      ) : (
+        <div className="legend-row">
+          {data.members.map((m) => (
+            <span key={m.id} className="legend-chip"><span className="legend-dot" style={{ background: m.color }}></span>{m.name}</span>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+function TpzAvailView({ data, viewYear, viewMonth, weeks, goPrevMonth, goNextMonth, currentPerson, setCurrentPerson, handleAvailClick, handleAvailDoubleClick, handleNoteClick, setWeekAvailable }) {
+  const today = todayStr();
+  const person = tpzMember(data, currentPerson);
+
+  return (
+    <>
+      <div className="panel">
+        <div className="person-picker">
+          <label className="field-label">Ich bin</label>
+          <select className="select" value={person ? currentPerson : ""} onChange={(e) => setCurrentPerson(e.target.value)}>
+            <option value="">– Name wählen –</option>
+            {data.members.map((m) => (<option key={m.id} value={m.id}>{m.name}</option>))}
+          </select>
+        </div>
+      </div>
+
+      {data.members.length === 0 ? (
+        <div className="tpz-empty">Noch niemand im TPZ-Team. Personen werden unter „Admin“ hinzugefügt.</div>
+      ) : !person ? (
+        <p className="hint-text">Bitte wähle oben deinen Namen, um deine Verfügbarkeit für die TPZ-Planung einzutragen.</p>
+      ) : (
+        <>
+          <p className="hint-text">
+            Jeder Tag wird einzeln angeklickt: <strong>1. Klick</strong> = Verfügbar, <strong>2. Klick</strong> = Vielleicht, <strong>3. Klick</strong> = gelöscht. Doppelklick löscht sofort. Im Montagsfeld setzt der Button <strong>„Woche"</strong> die ganze Woche auf verfügbar. Über das „!"-Symbol kannst du zu einem Tag einen Kommentar hinterlegen.
+          </p>
+          <MonthNav year={viewYear} month={viewMonth} onPrev={goPrevMonth} onNext={goNextMonth} />
+          <CalendarShell
+            weeks={weeks}
+            viewMonth={viewMonth}
+            renderCell={(ds, inMonth) => {
+              const entry = (data.availability[person.id] || {})[ds];
+              const status = entry ? entry.status : null;
+              const note = entry ? entry.note : null;
+              const isToday = ds === today;
+              const planned = (data.plan[ds] || []).includes(person.id);
+              return (
+                <div
+                  className={`cell ${inMonth ? "" : "cell-out"} ${isToday ? "cell-today" : ""} status-${status || "none"} ${note ? "cell-notewarn" : ""} ${planned ? "cell-tpz-sched" : ""}`}
+                  onClick={() => handleAvailClick(person.id, ds)}
+                  onDoubleClick={() => handleAvailDoubleClick(person.id, ds)}
+                >
+                  <div className="cell-top">
+                    <span className="cell-daynum">{parseDstr(ds).d}</span>
+                    <span className="cell-top-buttons">
+                      <button
+                        className="note-btn"
+                        onClick={(e) => { e.stopPropagation(); handleNoteClick(person.id, ds); }}
+                        title="Kommentar angeben"
+                      >
+                        !
+                      </button>
+                    </span>
+                  </div>
+                  {dowMon0(ds) === 0 && (
+                    <button
+                      type="button"
+                      className="week-btn"
+                      title="Ganze Woche (Mo–So) als verfügbar markieren"
+                      onClick={(e) => { e.stopPropagation(); setWeekAvailable(person.id, ds); }}
+                    >
+                      Woche
+                    </button>
+                  )}
+                  {status && <span className="status-pill">{status === "verfuegbar" ? "Verfügbar" : "Vielleicht"}</span>}
+                  {planned && <span className="tpz-sched-tag">📌 im Dienst</span>}
+                  {note ? <span className="note-tag" title={note}>❗ {note}</span> : null}
+                </div>
+              );
+            }}
+          />
+          <div className="legend-row">
+            <span className="legend-chip"><span className="legend-dot legend-dot-verf"></span>Verfügbar</span>
+            <span className="legend-chip"><span className="legend-dot legend-dot-viell"></span>Vielleicht</span>
+            <span className="legend-chip">📌 im TPZ-Dienst eingeplant</span>
+            <span className="legend-chip">❗ Kommentar</span>
+          </div>
+        </>
+      )}
+    </>
+  );
+}
+
+function TpzAdminView({ data, viewYear, viewMonth, weeks, goPrevMonth, goNextMonth, toggleAssign, addMember, renameMember, recolorMember, removeMember }) {
+  const today = todayStr();
+  const [newName, setNewName] = useState("");
+  const [nameDrafts, setNameDrafts] = useState({});
+  const [weekDialog, setWeekDialog] = useState(null);
+  const [manualDialog, setManualDialog] = useState(null);
+  const [manualWholeWeek, setManualWholeWeek] = useState(false);
+
+  function nameValue(m) { return nameDrafts[m.id] !== undefined ? nameDrafts[m.id] : m.name; }
+  function commitName(m) {
+    const val = (nameDrafts[m.id] !== undefined ? nameDrafts[m.id] : m.name).trim();
+    if (val && val !== m.name) renameMember(m.id, val);
+    setNameDrafts((d) => { const n = { ...d }; delete n[m.id]; return n; });
+  }
+  function askRemove(m) {
+    if (window.confirm(`${m.name} aus dem TPZ-Team entfernen?\n\nAlle Verfügbarkeiten und eingeplanten TPZ-Dienste dieser Person werden gelöscht (auch in der Statistik). Der Rufdienst ist davon nicht betroffen.`)) removeMember(m.id);
+  }
+  function submitNew(e) {
+    e.preventDefault();
+    if (addMember(newName)) setNewName("");
+  }
+
+  function peopleForDay(ds) {
+    const list = [];
+    data.members.forEach((m) => {
+      const e = tpzReported(data, m.id, ds);
+      if (e) list.push({ member: m, status: e.status, note: e.note || null, manual: false });
+    });
+    (data.plan[ds] || []).forEach((pid) => {
+      if (list.find((x) => x.member.id === pid)) return;
+      const m = tpzMember(data, pid);
+      if (m) list.push({ member: m, status: null, note: null, manual: true });
+    });
+    return list;
+  }
+  function manualCandidates(ds) {
+    return data.members.filter((m) => !tpzReported(data, m.id, ds) && !(data.plan[ds] || []).includes(m.id));
+  }
+
+  function handleChipClick(ds, pid) {
+    if (dowMon0(ds) === 0) setWeekDialog({ ds, pid });
+    else toggleAssign(ds, pid, "day");
+  }
+  function confirmWeek(scope) {
+    if (!weekDialog) return;
+    toggleAssign(weekDialog.ds, weekDialog.pid, scope);
+    setWeekDialog(null);
+  }
+  function openManual(ds) { setManualDialog(ds); setManualWholeWeek(false); }
+  function closeManual() { setManualDialog(null); setManualWholeWeek(false); }
+  function manualAdd(pid) {
+    const scope = manualWholeWeek && dowMon0(manualDialog) === 0 ? "week" : "day";
+    toggleAssign(manualDialog, pid, scope);
+    closeManual();
+  }
+
+  // Kommentare des angezeigten Monats (auch für Handy, wo es kein Hover gibt)
+  const monthPrefix = `${viewYear}-${pad(viewMonth + 1)}-`;
+  const monthNotes = [];
+  data.members.forEach((m) => {
+    Object.entries(data.availability[m.id] || {}).forEach(([ds, e]) => {
+      if (ds.startsWith(monthPrefix) && e.note) monthNotes.push({ ds, member: m, note: e.note });
+    });
+  });
+  monthNotes.sort((a, b) => a.ds.localeCompare(b.ds) || a.member.name.localeCompare(b.member.name));
+
+  const wdIsRemoval = weekDialog ? (data.plan[weekDialog.ds] || []).includes(weekDialog.pid) : false;
+  const manualList = manualDialog ? manualCandidates(manualDialog) : [];
+  const monthDuties = {};
+  Object.entries(data.plan).forEach(([ds, list]) => {
+    if (!ds.startsWith(monthPrefix)) return;
+    list.forEach((pid) => { monthDuties[pid] = (monthDuties[pid] || 0) + 1; });
+  });
+
+  return (
+    <>
+      <div className="admin-iststand-panel">
+        <h3 className="admin-iststand-title">TPZ-Dienste in {MONTH_NAMES[viewMonth]} {viewYear}</h3>
+        {data.members.length === 0 ? (
+          <div className="hint-text">Noch niemand im TPZ-Team – unten Personen hinzufügen.</div>
+        ) : (
+          <div className="admin-iststand-tiles">
+            {data.members.map((m) => (
+              <div key={m.id} className="admin-iststand-tile" style={{ borderColor: m.color }}>
+                <div className="admin-iststand-tile-name" style={{ color: m.color }}>{m.name}</div>
+                <div className="admin-iststand-tile-count">{monthDuties[m.id] || 0}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <p className="hint-text">
+        <strong>Klick</strong> auf einen Namen = für diesen Tag einplanen (ganzer Tag), nochmaliger Klick entfernt die Einplanung wieder. Pro Tag können mehrere Personen eingeplant werden. Am <strong>Montag</strong> öffnet sich zusätzlich die Frage „Für die ganze Woche planen?". Mit dem <strong>„+"</strong> in einem Tag lässt sich eine Person ohne gemeldete Verfügbarkeit manuell einplanen – sie ist dann mit <strong>„M"</strong> markiert.
+      </p>
+
+      <div className="legend-row">
+        <span className="legend-chip"><span className="legend-dot legend-dot-verf"></span>Verfügbar</span>
+        <span className="legend-chip"><span className="legend-dot legend-dot-viell"></span>Vielleicht</span>
+        <span className="legend-chip"><span className="tpz-dot">✓</span> eingeplant</span>
+        <span className="legend-chip"><span className="admin-manual-tag">M</span> manuell eingeplant</span>
+        <span className="legend-chip">❗ Kommentar</span>
+      </div>
+
+      <MonthNav year={viewYear} month={viewMonth} onPrev={goPrevMonth} onNext={goNextMonth} />
+
+      <CalendarShell
+        weeks={weeks}
+        viewMonth={viewMonth}
+        renderCell={(ds, inMonth) => {
+          const isMon = dowMon0(ds) === 0;
+          const assigned = data.plan[ds] || [];
+          const isToday = ds === today;
+          const people = peopleForDay(ds);
+          return (
+            <div className={`cell cell-admin tpz-admin-cell ${inMonth ? "" : "cell-out"} ${isToday ? "cell-today" : ""} ${isMon ? "cell-admin-monday" : ""}`}>
+              <div className="cell-top">
+                <span className="cell-daynum">{parseDstr(ds).d}</span>
+                <button type="button" className="admin-add-btn" title="Person manuell einplanen (ohne gemeldete Verfügbarkeit)" onClick={() => openManual(ds)}>+</button>
+              </div>
+              <div className="admin-chip-list">
+                {people.length === 0 && <span className="admin-no-avail">–</span>}
+                {people.map(({ member, status, note, manual }) => {
+                  const isAssigned = assigned.includes(member.id);
+                  return (
+                    <button
+                      key={member.id}
+                      type="button"
+                      className={`admin-mini-chip ${status ? "admin-mini-chip-" + status : ""} ${manual ? "admin-mini-chip-manual" : ""} ${isAssigned ? "tpz-assigned-chip" : ""}`}
+                      style={isAssigned ? { borderColor: member.color } : {}}
+                      onClick={(e) => { e.stopPropagation(); handleChipClick(ds, member.id); }}
+                      title={`${member.name}${manual ? " – manuell eingeplant (keine Verfügbarkeit gemeldet)" : ""}${note ? " – Kommentar: " + note : ""}`}
+                    >
+                      {tpzFirstName(data, member)}
+                      {isAssigned && <span className="tpz-dot">✓</span>}
+                      {manual && <span className="admin-manual-tag">M</span>}
+                      {note && <span className="admin-note-dot">❗</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        }}
+      />
+
+      {monthNotes.length > 0 && (
+        <div className="tpz-notes">
+          <h3 className="tpz-notes-title">Kommentare im {MONTH_NAMES[viewMonth]}</h3>
+          {monthNotes.map((n) => (
+            <div key={n.ds + n.member.id} className="tpz-note-line">
+              ❗ <b>{WEEKDAY_SHORT[dowMon0(n.ds)]} {formatDateDe(n.ds)}</b> · <span style={{ color: n.member.color, fontWeight: 600 }}>{n.member.name}</span>: {n.note}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="people-manage-panel">
+        <h3 className="admin-iststand-title" style={{ margin: 0 }}>TPZ-Team verwalten</h3>
+        <form className="tpz-team-add" onSubmit={submitNew}>
+          <input className="text-input" placeholder="Name der neuen Person" value={newName} onChange={(e) => setNewName(e.target.value)} />
+          <button type="submit" className="btn btn-primary">Hinzufügen</button>
+        </form>
+        <div className="people-manage-list">
+          {data.members.map((m) => (
+            <div className="people-manage-row" key={m.id}>
+              <input type="color" className="people-color-input" value={m.color || "#8B8578"} onChange={(e) => recolorMember(m.id, e.target.value)} title="Farbe ändern" />
+              <input
+                className="text-input people-name-input"
+                value={nameValue(m)}
+                onChange={(e) => setNameDrafts((d) => ({ ...d, [m.id]: e.target.value }))}
+                onBlur={() => commitName(m)}
+                onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+              />
+              <button type="button" className="mini-btn mat-delete" title="Aus dem TPZ-Team entfernen" onClick={() => askRemove(m)}>Entfernen</button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {weekDialog && (
+        <div className="modal-backdrop" onClick={() => setWeekDialog(null)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <h3 className="modal-title">{wdIsRemoval ? "Für die ganze Woche entfernen?" : "Für die ganze Woche planen?"}</h3>
+            <p className="modal-text">
+              {(tpzMember(data, weekDialog.pid) || {}).name} · Montag, {formatDateDe(weekDialog.ds)}
+            </p>
+            <div className="modal-actions">
+              <button className="btn btn-ghost" onClick={() => confirmWeek("day")}>Nur Montag</button>
+              <button className="btn btn-primary" onClick={() => confirmWeek("week")}>Ganze Woche</button>
+              <button className="btn btn-ghost" onClick={() => setWeekDialog(null)}>Abbrechen</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {manualDialog && (
+        <div className="modal-backdrop" onClick={closeManual}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <h3 className="modal-title">Person manuell einplanen</h3>
+            <p className="modal-text">
+              {WEEKDAY_FULL[dowMon0(manualDialog)]}, {formatDateDe(manualDialog)} – Personen ohne gemeldete Verfügbarkeit
+            </p>
+            {dowMon0(manualDialog) === 0 && (
+              <label className="modal-check">
+                <input type="checkbox" checked={manualWholeWeek} onChange={(e) => setManualWholeWeek(e.target.checked)} />
+                Für die ganze Woche
+              </label>
+            )}
+            {manualList.length === 0 ? (
+              <p className="hint-text">Alle Personen sind für diesen Tag bereits verfügbar oder eingeplant.</p>
+            ) : (
+              <div className="modal-list">
+                {manualList.map((m) => (
+                  <div className="modal-row" key={m.id}>
+                    <span className="modal-row-name" style={{ color: m.color }}>{m.name}</span>
+                    <button className="btn btn-ghost" onClick={() => manualAdd(m.id)}>Einplanen</button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="modal-actions">
+              <button className="btn btn-ghost" onClick={closeManual}>Schließen</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+function TpzStatsView({ data, statYear, setStatYear }) {
+  const thisYear = new Date().getFullYear();
+  const years = useMemo(() => {
+    const set = new Set([thisYear]);
+    Object.keys(data.plan).forEach((ds) => set.add(Number(ds.slice(0, 4))));
+    return Array.from(set).sort((a, b) => a - b);
+  }, [data.plan]);
+  const holidays = useMemo(() => shHolidays(statYear), [statYear]);
+
+  const stats = {};
+  data.members.forEach((m) => { stats[m.id] = { count: 0, weekend: 0, holiday: 0, months: new Array(12).fill(0) }; });
+  Object.entries(data.plan).forEach(([ds, list]) => {
+    if (ds.slice(0, 4) !== String(statYear)) return;
+    list.forEach((pid) => {
+      const s = stats[pid];
+      if (!s) return;
+      s.count++;
+      s.months[parseDstr(ds).m]++;
+      if (dowMon0(ds) >= 5) s.weekend++;
+      if (holidays.has(ds)) s.holiday++;
+    });
+  });
+  const total = Object.values(stats).reduce((sum, s) => sum + s.count, 0);
+
+  return (
+    <>
+      <div className="panel">
+        <label className="field-label">Jahr</label>
+        <select className="select" value={statYear} onChange={(e) => setStatYear(Number(e.target.value))}>
+          {(years.includes(statYear) ? years : [...years, statYear].sort((a, b) => a - b)).map((y) => (<option key={y} value={y}>{y}</option>))}
+        </select>
+      </div>
+
+      <p className="hint-text">
+        Gezählt werden alle im TPZ-Plan eingetragenen Diensttage (ganze Tage) des gewählten Jahres. „Wochenende" = Samstag/Sonntag, „Feiertage" = gesetzliche Feiertage in Schleswig-Holstein. Ein Feiertag auf einem Wochenende zählt in beiden Spalten.
+      </p>
+
+      {data.members.length === 0 ? (
+        <div className="tpz-empty">Noch niemand im TPZ-Team.</div>
+      ) : (
+        <>
+          <div className="stats-table-wrap">
+            <table className="stats-table">
+              <thead>
+                <tr><th>Name</th><th>Diensttage {statYear}</th><th>davon Wochenende</th><th>davon Feiertage</th></tr>
+              </thead>
+              <tbody>
+                {data.members.map((m) => (
+                  <tr key={m.id}>
+                    <td style={{ color: m.color }}>{m.name}</td>
+                    <td className="stats-total-cell">{stats[m.id].count}</td>
+                    <td>{stats[m.id].weekend || "–"}</td>
+                    <td>{stats[m.id].holiday || "–"}</td>
+                  </tr>
+                ))}
+                <tr>
+                  <td><strong>Gesamt</strong></td>
+                  <td className="stats-total-cell">{total}</td>
+                  <td>{Object.values(stats).reduce((s, x) => s + x.weekend, 0) || "–"}</td>
+                  <td>{Object.values(stats).reduce((s, x) => s + x.holiday, 0) || "–"}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div className="stats-table-wrap">
+            <table className="stats-table tpz-month-table">
+              <thead>
+                <tr><th>Pro Monat</th>{MONTH_NAMES.map((mn) => (<th key={mn}>{mn.slice(0, 3)}</th>))}</tr>
+              </thead>
+              <tbody>
+                {data.members.map((m) => (
+                  <tr key={m.id}>
+                    <td style={{ color: m.color }}>{m.name}</td>
+                    {stats[m.id].months.map((c, i) => (<td key={i}>{c || "–"}</td>))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+    </>
+  );
+}
+
+/* ---------- Tab: Alle (Gesamtübersicht: Rufdienst, TPZ-Dienst, Material) ----------
+   Nur lesend. Rufdienst und Material kommen aus dem App-Datensatz, der TPZ-Dienst aus dem
+   getrennten TPZ-Datensatz ("tpz/state"), der hier ausschließlich gelesen wird. */
+
+const MATERIAL_CHECK_INTERVAL_DAYS = 30; // danach gilt die vollständige Materialkontrolle als überfällig
+
+function AlleTab({ data }) {
+  const [tpz, setTpz] = useState(null);
+  const [tpzOk, setTpzOk] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const res = await apiGetDoc(TPZ_DOC);
+        if (cancelled) return;
+        setTpz(res.exists ? tpzNormalize(res.data) : tpzDefaultData());
+        setTpzOk(true);
+      } catch (e) {
+        console.error("TPZ-Daten für die Übersicht nicht ladbar", e);
+        if (!cancelled) setTpzOk(false);
+      }
+    }
+    load();
+    const interval = setInterval(load, SYNC_POLL_MS);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, []);
+
+  const today = todayStr();
+  const { d } = parseDstr(today);
+
+  /* Rufdienst */
+  const primaryId = data.assignments[today];
+  const backupId = (data.backupAssignments || {})[today];
+  const primary = primaryId ? data.members.find((m) => m.id === primaryId) : null;
+  const backup = backupId ? data.members.find((m) => m.id === backupId) : null;
+  const primaryAvail = primaryId ? (data.availability[primaryId] || {})[today] : null;
+  const telOf = (m) => (m && m.phone ? `tel:${m.phone.replace(/[^0-9+]/g, "")}` : null);
+
+  /* TPZ */
+  const tpzMembers = tpz ? tpz.members : [];
+  const tpzNamesOn = (ds) => (tpz ? (tpz.plan[ds] || []).map((id) => tpzMembers.find((m) => m.id === id)).filter(Boolean) : []);
+  const tpzToday = tpzNamesOn(today);
+
+  /* nächste 7 Tage */
+  const outlook = [];
+  for (let i = 0; i < 7; i++) outlook.push(addDaysStr(today, i));
+
+  /* Material */
+  const rows = data.materials.map((m) => ({ mat: m, status: materialStatus(m) }));
+  const toOrder = rows
+    .filter((r) => r.status.understock)
+    .sort((a, b) => a.mat.name.localeCompare(b.mat.name, "de"));
+  const toCheck = [];
+  data.materials.forEach((m) => {
+    (m.batches || []).forEach((b) => {
+      if (!b.expiry) return;
+      const du = daysUntil(b.expiry);
+      if (du <= EXPIRY_WARNING_DAYS) toCheck.push({ mat: m, batch: b, du });
+    });
+  });
+  toCheck.sort((a, b) => a.du - b.du);
+
+  const checks = [...(data.materialChecks || [])].sort((a, b) => b.date.localeCompare(a.date));
+  const lastCheck = checks[0] || null;
+  const daysSinceCheck = lastCheck ? -daysUntil(lastCheck.date) : null;
+  const checkOverdue = !lastCheck || daysSinceCheck > MATERIAL_CHECK_INTERVAL_DAYS;
+
+  function expiryText(du) {
+    if (du < 0) return `abgelaufen seit ${-du} ${-du === 1 ? "Tag" : "Tagen"}`;
+    if (du === 0) return "läuft heute ab";
+    return `läuft in ${du} ${du === 1 ? "Tag" : "Tagen"} ab`;
+  }
+
+  return (
+    <div className="tab-content">
+      <div className="alle-grid">
+        <div className="alle-card alle-card-rd">
+          <div className="alle-label">Heute im Rufdienst</div>
+          <div className="alle-date">{WEEKDAY_FULL[dowMon0(today)]}, {d}. {MONTH_NAMES[parseDstr(today).m]}</div>
+          {primary ? (
+            <>
+              <div className="alle-name" style={{ color: colorFor(data.members, primary.id) }}>{primary.name}</div>
+              {primaryAvail && primaryAvail.leadTimeHours ? <div className="today-leadwarn">⏱ Braucht {primaryAvail.leadTimeHours} Std. Vorlaufzeit</div> : null}
+              {primaryAvail && primaryAvail.note ? <div className="today-notewarn">❗ {primaryAvail.note}</div> : null}
+              {telOf(primary) ? (
+                <a className="btn btn-call" href={telOf(primary)}><Phone size={16} /> Anrufen</a>
+              ) : (
+                <div className="no-phone-note">Keine Telefonnummer hinterlegt</div>
+              )}
+            </>
+          ) : (
+            <div className="alle-none">Niemand zugewiesen</div>
+          )}
+          {backup && (
+            <div className="alle-sub">
+              <span className="alle-sub-label">Backup:</span>{" "}
+              <span style={{ color: colorFor(data.members, backup.id), fontWeight: 600 }}>{backup.name}</span>
+              {telOf(backup) && <> · <a className="alle-tel" href={telOf(backup)}>anrufen</a></>}
+            </div>
+          )}
+        </div>
+
+        <div className="alle-card alle-card-tpz">
+          <div className="alle-label">Heute im TPZ-Dienst</div>
+          <div className="alle-date">{WEEKDAY_FULL[dowMon0(today)]}, {d}. {MONTH_NAMES[parseDstr(today).m]}</div>
+          {tpz === null ? (
+            <div className="alle-none">{tpzOk ? "lädt …" : "TPZ-Daten nicht erreichbar"}</div>
+          ) : tpzToday.length ? (
+            <div className="alle-names">
+              {tpzToday.map((m) => (<div key={m.id} className="alle-name" style={{ color: m.color }}>{m.name}</div>))}
+            </div>
+          ) : (
+            <div className="alle-none">Niemand eingeplant</div>
+          )}
+          {tpz !== null && !tpzOk && <div className="alle-sub">Stand evtl. nicht aktuell (keine Verbindung)</div>}
+        </div>
+      </div>
+
+      <div className="alle-panel">
+        <h3 className="alle-title">Nächste 7 Tage</h3>
+        <div className="alle-week">
+          <div className="alle-week-row alle-week-head"><span>Tag</span><span>Rufdienst</span><span>TPZ</span></div>
+          {outlook.map((ds) => {
+            const rid = data.assignments[ds];
+            const rm = rid ? data.members.find((m) => m.id === rid) : null;
+            const tz = tpzNamesOn(ds);
+            const { d: dd, m: mm } = parseDstr(ds);
+            return (
+              <div key={ds} className={`alle-week-row ${ds === today ? "alle-week-today" : ""}`}>
+                <span className="alle-week-day">{WEEKDAY_SHORT[dowMon0(ds)]} {dd}.{mm + 1}.</span>
+                <span>{rm ? <b style={{ color: colorFor(data.members, rm.id) }}>{rm.name}</b> : <span className="alle-dash">–</span>}</span>
+                <span>{tz.length ? tz.map((m, i) => (<span key={m.id}>{i > 0 ? ", " : ""}<b style={{ color: m.color }}>{m.name}</b></span>)) : <span className="alle-dash">–</span>}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="alle-panel">
+        <h3 className="alle-title">Material bestellen {toOrder.length > 0 && <span className="alle-count alle-count-bad">{toOrder.length}</span>}</h3>
+        {toOrder.length === 0 ? (
+          <div className="alle-ok">✓ Nichts zu bestellen – alle Bestände über der Mindestmenge.</div>
+        ) : (
+          <div className="alle-list">
+            {toOrder.map(({ mat, status }) => (
+              <div key={mat.id} className="alle-item">
+                <div className="alle-item-main">
+                  <div className="alle-item-name">{mat.name}</div>
+                  <div className="alle-item-sub">
+                    {mat.refNr ? `Ref.: ${mat.refNr}` : "keine Ref.-Nr."}{mat.usage ? ` · ${USAGE_LABELS[mat.usage]}` : ""}
+                  </div>
+                </div>
+                <div className="alle-item-qty">
+                  <span className="mat-qty-badge mat-badge-bad">{status.total} / {mat.minQty} Stk.</span>
+                  <span className="alle-missing">fehlt: {mat.minQty - status.total}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="alle-panel">
+        <h3 className="alle-title">Material prüfen {toCheck.length > 0 && <span className="alle-count alle-count-warn">{toCheck.length}</span>}</h3>
+        <div className={`alle-check ${checkOverdue ? "alle-check-overdue" : ""}`}>
+          {lastCheck
+            ? <>Letzte vollständige Kontrolle: {formatDateDe(lastCheck.date)}{lastCheck.personId ? ` (${memberName(data, lastCheck.personId)})` : ""} – vor {daysSinceCheck} {daysSinceCheck === 1 ? "Tag" : "Tagen"}{checkOverdue ? ` · überfällig (länger als ${MATERIAL_CHECK_INTERVAL_DAYS} Tage)` : ""}</>
+            : <>Noch keine vollständige Materialkontrolle erfasst – überfällig</>}
+        </div>
+        {toCheck.length === 0 ? (
+          <div className="alle-ok">✓ Keine abgelaufenen oder bald ablaufenden Chargen.</div>
+        ) : (
+          <div className="alle-list">
+            {toCheck.map(({ mat, batch, du }) => (
+              <div key={mat.id + batch.id} className="alle-item">
+                <div className="alle-item-main">
+                  <div className="alle-item-name">{mat.name}</div>
+                  <div className="alle-item-sub">
+                    MHD {formatDateDe(batch.expiry)} · {batch.qty} Stk.{batch.lot ? ` · Charge ${batch.lot}` : ""}
+                  </div>
+                </div>
+                <div className="alle-item-qty">
+                  <span className={`mat-qty-badge ${du < 0 ? "mat-badge-bad" : "mat-badge-warn"}`}>{expiryText(du)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
