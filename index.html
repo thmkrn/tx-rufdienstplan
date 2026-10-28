@@ -404,6 +404,15 @@
       .mat-ref { font-size: 11px; color: var(--muted); margin-top: 1px; }
       .mat-bags { font-weight: 600; color: var(--ink); }
       .order-tag { background: var(--lung); color: var(--panel); font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
+      .order-tag-arrived { background: var(--green); }
+      .nav-badge { display: inline-block; margin-left: 6px; min-width: 18px; padding: 0 5px; border-radius: 999px; background: var(--heart); color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; }
+      .tab-btn.active .nav-badge { background: #fff; color: var(--heart); }
+      .order-note-tpz { background: var(--amber-bg); color: var(--amber-text); border: 1px solid var(--amber); border-radius: 4px; padding: 10px 12px; font-size: 13px; font-weight: 600; }
+      .order-arrived-panel { border-color: var(--green); }
+      .alle-count-ok { background: var(--green-bg); color: var(--green); }
+      .people-add-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding-bottom: 4px; }
+      .people-add-row .people-name-input { flex: 1 1 200px; }
+      .people-add-hint { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
       .order-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; }
       .order-form .field-label { white-space: nowrap; }
       .order-meta { font-size: 12px; color: var(--muted); line-height: 1.45; }
@@ -1097,6 +1106,16 @@ function openOrderFor(data, materialId) {
   return list[0] || null;
 }
 
+// Eingegangene, aber noch nicht im Material erfasste Lieferung
+function arrivedOrderFor(data, materialId) {
+  const list = (data.orders || []).filter((o) => o.materialId === materialId && o.receivedOn && !o.bookedOn);
+  list.sort((a, b) => (b.receivedOn || "").localeCompare(a.receivedOn || ""));
+  return list[0] || null;
+}
+function arrivedOrderCount(data) {
+  return (data.orders || []).filter((o) => o.receivedOn && !o.bookedOn && (data.materials || []).some((m) => m.id === o.materialId)).length;
+}
+
 function batchSizeL(b) { return b.sizeL || 1; }
 function batchLiters(mat, b) { return (b.qty || 0) * (mat.liquid ? batchSizeL(b) : 1); }
 function materialUnit(mat) { return mat.liquid ? "l" : "Stk."; }
@@ -1685,6 +1704,10 @@ function App() {
     if (!remote.materials) { remote.materials = MATERIALS_SEED.map((m) => ({ ...m, batches: [] })); changed = true; }
     remote.materials = remote.materials.map((m) => ({ usage: m.usage || null, ...m }));
     if (!Array.isArray(remote.orders)) { remote.orders = []; changed = true; }
+    remote.orders = remote.orders.map((o) => {
+      if (o.receivedOn && o.bookedOn === undefined) { changed = true; return { ...o, bookedOn: o.receivedOn }; }
+      return o;
+    });
     // Perfadex/Custodiol: bisherige Beutel-Posten werden zu Lösungen in Litern (Bestand bleibt erhalten)
     remote.materials = remote.materials.map((m) => {
       const mig = LIQUID_MIGRATION[m.id];
@@ -1931,6 +1954,22 @@ function App() {
     });
   }
 
+  // Neues Teammitglied hinzufügen (Admin-Bereich). Gibt true zurück, wenn die Person angelegt wurde.
+  function addMember(name) {
+    const clean = (name || "").trim();
+    if (!clean) return false;
+    if (data.members.some((m) => m.name.toLowerCase() === clean.toLowerCase())) {
+      window.alert("Diesen Namen gibt es im Team schon" + (data.members.some((m) => m.archived && m.name.toLowerCase() === clean.toLowerCase()) ? " (archiviert – unter „Archiviert“ wiederherstellbar)." : "."));
+      return false;
+    }
+    commit((prev) => {
+      const used = prev.members.filter((m) => !m.archived).map((m) => (m.color || "").toLowerCase());
+      const color = TPZ_COLORS.find((c) => !used.includes(c.toLowerCase())) || TPZ_COLORS[prev.members.length % TPZ_COLORS.length];
+      return { ...prev, members: [...prev.members, { id: "m_" + newId(), name: clean, phone: "", color, calendarToken: generateToken() }] };
+    });
+    return true;
+  }
+
   function restoreMember(personId) {
     commit((prev) => ({
       ...prev,
@@ -2128,11 +2167,20 @@ function App() {
       orders: [...(prev.orders || []), { id: newId(), materialId, qty, orderedOn: orderedOn || todayStr(), personId: personId || null, note: note || "", receivedOn: null }],
     }));
   }
-  function closeOrder(orderId) {
-    commit((prev) => ({ ...prev, orders: (prev.orders || []).map((o) => (o.id === orderId ? { ...o, receivedOn: todayStr() } : o)) }));
+  function receiveOrder(orderId, qty, byName, via, alsoBook) {
+    const today = todayStr();
+    commit((prev) => ({
+      ...prev,
+      orders: (prev.orders || []).map((o) => (o.id === orderId
+        ? { ...o, receivedOn: today, receivedQty: qty || null, receivedBy: byName || "", receivedVia: via || "rd", bookedOn: alsoBook ? today : null }
+        : o)),
+    }));
+  }
+  function bookOrder(orderId) {
+    commit((prev) => ({ ...prev, orders: (prev.orders || []).map((o) => (o.id === orderId ? { ...o, bookedOn: todayStr() } : o)) }));
   }
   function reopenOrder(orderId) {
-    commit((prev) => ({ ...prev, orders: (prev.orders || []).map((o) => (o.id === orderId ? { ...o, receivedOn: null } : o)) }));
+    commit((prev) => ({ ...prev, orders: (prev.orders || []).map((o) => (o.id === orderId ? { ...o, receivedOn: null, receivedQty: null, receivedBy: "", receivedVia: "", bookedOn: null } : o)) }));
   }
   function deleteOrder(orderId) {
     commit((prev) => ({ ...prev, orders: (prev.orders || []).filter((o) => o.id !== orderId) }));
@@ -2392,8 +2440,9 @@ function App() {
   /* ---------- Render: App ---------- */
 
   // Untermenü des jeweiligen Hauptbereichs: am PC in der Kopfleiste, am Handy unter den Hauptreitern
-  const rdNavItems = [["uebersicht", "Übersicht"], ["einsatz", "Im Einsatz"], ["material", "Material"], ["bestellungen", "Materialbestellungen verwalten"], ["verfuegbar", "Verfügbarkeit"], ["admin", "Admin"], ["statistik", "Statistik"]];
-  const tpzNavItems = [["plan", "Plan"], ["verfuegbar", "Verfügbarkeit"], ["admin", "Admin"], ["statistik", "Statistik"]];
+  const rdNavItems = [["uebersicht", "Übersicht"], ["einsatz", "Im Einsatz"], ["material", "Material"], ["bestellungen", "Bestellungen"], ["verfuegbar", "Verfügbarkeit"], ["admin", "Admin"], ["statistik", "Statistik"]];
+  const tpzNavItems = [["plan", "Plan"], ["verfuegbar", "Verfügbarkeit"], ["bestellungen", "Bestellungen"], ["admin", "Admin"], ["statistik", "Statistik"]];
+  const arrivedCount = arrivedOrderCount(data);
   const renderModeNav = (where) => {
     const isTpz = mode === "tpz";
     const items = isTpz ? tpzNavItems : rdNavItems;
@@ -2402,7 +2451,7 @@ function App() {
     return (
       <nav className={`tab-nav ${where} ${isTpz ? "tab-nav-tpz" : ""}`}>
         {items.map(([key, label]) => (
-          <button key={key} className={`tab-btn ${current === key ? "active" : ""}`} onClick={() => choose(key)}>{label}</button>
+          <button key={key} className={`tab-btn ${current === key ? "active" : ""}`} onClick={() => choose(key)}>{label}{key === "bestellungen" && !isTpz && arrivedCount > 0 ? <span className="nav-badge" title="Eingegangene Lieferungen">{arrivedCount}</span> : null}</button>
         ))}
       </nav>
     );
@@ -2440,7 +2489,10 @@ function App() {
       {mode !== "all" && renderModeNav("tab-nav-below")}
 
       <main className="app-main">
-        {mode === "tpz" && <TpzTab section={tpzSection} />}
+        {mode === "tpz" && tpzSection !== "bestellungen" && <TpzTab section={tpzSection} />}
+        {mode === "tpz" && tpzSection === "bestellungen" && (
+          <OrdersTab tpz data={data} addOrder={addOrder} receiveOrder={receiveOrder} bookOrder={bookOrder} reopenOrder={reopenOrder} deleteOrder={deleteOrder} />
+        )}
         {mode === "all" && <AlleTab data={data} />}
         {mode === "rd" && (<>
         {tab === "verfuegbar" && (
@@ -2475,6 +2527,7 @@ function App() {
             updateMemberName={updateMemberName}
             updateMemberColor={updateMemberColor}
             archiveMember={archiveMember}
+            addMember={addMember}
             restoreMember={restoreMember}
             deleteMemberPermanently={deleteMemberPermanently}
           />
@@ -2519,7 +2572,7 @@ function App() {
           />
         )}
         {tab === "bestellungen" && (
-          <OrdersTab data={data} addOrder={addOrder} closeOrder={closeOrder} reopenOrder={reopenOrder} deleteOrder={deleteOrder} />
+          <OrdersTab data={data} addOrder={addOrder} receiveOrder={receiveOrder} bookOrder={bookOrder} reopenOrder={reopenOrder} deleteOrder={deleteOrder} />
         )}
         {tab === "einsatz" && (
           <EinsatzTab
@@ -2659,13 +2712,14 @@ function VerfuegbarTab({ data, currentPerson, setCurrentPerson, updatePhone, vie
 
 /* ---------- Tab: Admin ---------- */
 
-function AdminTab({ data, viewYear, viewMonth, weeks, goPrevMonth, goNextMonth, setDayRole, resetMonthData, updateMemberName, updateMemberColor, archiveMember, restoreMember, deleteMemberPermanently }) {
+function AdminTab({ data, viewYear, viewMonth, weeks, goPrevMonth, goNextMonth, setDayRole, resetMonthData, updateMemberName, updateMemberColor, archiveMember, addMember, restoreMember, deleteMemberPermanently }) {
   const today = todayStr();
   const [showPeople, setShowPeople] = useState(false);
   const [nameDrafts, setNameDrafts] = useState({});
   const [weekDialog, setWeekDialog] = useState(null);
   const [manualDialog, setManualDialog] = useState(null);
   const [manualWholeWeek, setManualWholeWeek] = useState(false);
+  const [newPerson, setNewPerson] = useState("");
 
   const activeMembers = data.members.filter((m) => !m.archived);
   const archivedMembers = data.members.filter((m) => m.archived);
@@ -2803,10 +2857,21 @@ function AdminTab({ data, viewYear, viewMonth, weeks, goPrevMonth, goNextMonth, 
 
       <div className="people-manage-panel">
         <button className="btn btn-ghost" onClick={() => setShowPeople((s) => !s)}>
-          {showPeople ? "Personen ausblenden" : "Personen verwalten (Namen, Farben, Entfernen)"}
+          {showPeople ? "Personen ausblenden" : "Personen verwalten (Hinzufügen, Namen, Farben, Entfernen)"}
         </button>
         {showPeople && (
           <div className="people-manage-list">
+            <div className="people-add-row">
+              <input
+                className="text-input people-name-input"
+                placeholder="Neues Teammitglied – Name eingeben"
+                value={newPerson}
+                onChange={(e) => setNewPerson(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter" && addMember(newPerson)) setNewPerson(""); }}
+              />
+              <button type="button" className="btn btn-primary" onClick={() => { if (addMember(newPerson)) setNewPerson(""); }}>+ Hinzufügen</button>
+            </div>
+            <div className="people-add-hint">Neue Teammitglieder erscheinen sofort in Verfügbarkeit, Plan und Statistik. Die Farbe wird automatisch vergeben und lässt sich unten ändern.</div>
             {activeMembers.map((m) => (
               <div className="people-manage-row" key={m.id}>
                 <input
@@ -3253,6 +3318,7 @@ function MaterialTab({ data, materialImages, addBatch, consumeQty, deleteBatch, 
                 </div>
                 {mat.usage ? <div className="mat-usage-badge">{USAGE_LABELS[mat.usage]}</div> : null}
                 {openOrderFor(data, mat.id) && <div className="order-tag" title={"Bestellt am " + pdfDate(openOrderFor(data, mat.id).orderedOn)}>Bestellt</div>}
+                {!openOrderFor(data, mat.id) && arrivedOrderFor(data, mat.id) && <div className="order-tag order-tag-arrived" title={"Geliefert am " + pdfDate(arrivedOrderFor(data, mat.id).receivedOn) + " – Charge noch erfassen"}>Eingegangen</div>}
                 <div className={`mat-qty-badge ${qtyBadgeClass}`}>
                   {status.total}{mat.minQty > 0 ? ` / ${mat.minQty}` : ""} {materialUnit(mat)}
                 </div>
@@ -3383,13 +3449,16 @@ function MaterialTab({ data, materialImages, addBatch, consumeQty, deleteBatch, 
 
 /* ---------- Tab: Materialbestellungen verwalten ---------- */
 
-function OrdersTab({ data, addOrder, closeOrder, reopenOrder, deleteOrder }) {
+function OrdersTab({ data, tpz, addOrder, receiveOrder, bookOrder, reopenOrder, deleteOrder }) {
   const [formFor, setFormFor] = useState(null); // materialId oder "__manual__"
   const [fMaterial, setFMaterial] = useState("");
   const [fQty, setFQty] = useState("");
   const [fDate, setFDate] = useState(todayStr());
   const [fBy, setFBy] = useState("");
   const [fNote, setFNote] = useState("");
+  const [recvFor, setRecvFor] = useState(null); // Bestell-ID, für die gerade der Eingang erfasst wird
+  const [rQty, setRQty] = useState("");
+  const [rBy, setRBy] = useState("");
   const [showHistory, setShowHistory] = useState(false);
 
   const orders = data.orders || [];
@@ -3397,16 +3466,21 @@ function OrdersTab({ data, addOrder, closeOrder, reopenOrder, deleteOrder }) {
   const openOrders = orders
     .filter((o) => !o.receivedOn && matById(o.materialId))
     .sort((a, b) => (b.orderedOn || "").localeCompare(a.orderedOn || ""));
-  const orderedIds = new Set(openOrders.map((o) => o.materialId));
+  const arrivedOrders = orders
+    .filter((o) => o.receivedOn && !o.bookedOn && matById(o.materialId))
+    .sort((a, b) => (b.receivedOn || "").localeCompare(a.receivedOn || ""));
+  const activeIds = new Set([...openOrders, ...arrivedOrders].map((o) => o.materialId));
   const toOrder = data.materials
     .map((m) => ({ mat: m, status: materialStatus(m) }))
-    .filter((r) => r.status.understock && !orderedIds.has(r.mat.id))
+    .filter((r) => r.status.understock && !activeIds.has(r.mat.id))
     .sort((a, b) => a.mat.name.localeCompare(b.mat.name, "de"));
   const history = orders
-    .filter((o) => o.receivedOn && matById(o.materialId))
-    .sort((a, b) => (b.receivedOn || "").localeCompare(a.receivedOn || ""))
+    .filter((o) => o.receivedOn && o.bookedOn && matById(o.materialId))
+    .sort((a, b) => (b.bookedOn || "").localeCompare(a.bookedOn || ""))
     .slice(0, 30);
   const personName = (id) => { const m = id ? data.members.find((x) => x.id === id) : null; return m ? m.name : ""; };
+  const qtyText = (o, mat) => (o.qty ? `Menge: ${o.qty} ${materialUnit(mat)}` : "Menge offen");
+  const gotText = (o, mat) => { const q = o.receivedQty || o.qty; return q ? `${q} ${materialUnit(mat)}` : "Menge offen"; };
 
   function openForm(materialId, suggestedQty) {
     setFormFor(materialId);
@@ -3419,9 +3493,20 @@ function OrdersTab({ data, addOrder, closeOrder, reopenOrder, deleteOrder }) {
   function submitForm() {
     const materialId = formFor === "__manual__" ? fMaterial : formFor;
     const qty = Number(fQty);
-    if (!materialId || !qty || qty <= 0) return;
-    addOrder(materialId, qty, fDate || todayStr(), fBy, fNote.trim());
+    if (!materialId) return;
+    addOrder(materialId, qty > 0 ? qty : null, fDate || todayStr(), fBy, fNote.trim());
     setFormFor(null);
+  }
+  function openRecv(o) {
+    setRecvFor(o.id);
+    setRQty(o.qty ? String(o.qty) : "");
+    setRBy("");
+  }
+  function submitRecv(o, alsoBook) {
+    const qty = Number(rQty);
+    if (!o.qty && !(qty > 0)) { window.alert("Bitte die gelieferte Menge angeben – bei der Bestellung wurde keine Menge erfasst."); return; }
+    receiveOrder(o.id, qty > 0 ? qty : null, rBy.trim(), tpz ? "tpz" : "rd", alsoBook);
+    setRecvFor(null);
   }
 
   function renderForm(mat) {
@@ -3435,65 +3520,129 @@ function OrdersTab({ data, addOrder, closeOrder, reopenOrder, deleteOrder }) {
             {[...data.materials].sort((a, b) => a.name.localeCompare(b.name, "de")).map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
           </select>
         )}
-        <span className="field-label">Menge{unitMat ? ` (${unitMat.liquid ? "Liter" : "Stück"})` : ""}:</span>
+        <span className="field-label">Menge{unitMat ? ` (${unitMat.liquid ? "Liter" : "Stück"})` : ""}, optional:</span>
         <NumberStepper min={1} placeholder="Menge" value={fQty} onChange={setFQty} />
         <span className="field-label">Bestellt am:</span>
         <input className="text-input" type="date" value={fDate} onChange={(e) => setFDate(e.target.value)} />
         <select className="select" value={fBy} onChange={(e) => setFBy(e.target.value)}>
           <option value="">Bestellt von (optional)</option>
-          {data.members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+          {data.members.filter((m) => !m.archived).map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
         </select>
         <input className="text-input" placeholder="Notiz (optional), z. B. Lieferant oder Bestellnummer" value={fNote} onChange={(e) => setFNote(e.target.value)} style={{ flex: "1 1 220px" }} />
+        {!fQty && <div className="order-meta" style={{ flex: "1 1 100%" }}>Ohne Menge: Sie muss dann beim Wareneingang erfasst werden.</div>}
         <button className="btn btn-primary" onClick={submitForm}>Bestellung speichern</button>
         <button className="btn btn-ghost" onClick={() => setFormFor(null)}>Abbrechen</button>
       </div>
     );
   }
 
+  function renderRecvForm(o, mat) {
+    return (
+      <div className="order-form">
+        <span className="field-label">Gelieferte Menge ({mat.liquid ? "Liter" : "Stück"}){o.qty ? "" : " – Pflicht"}:</span>
+        <NumberStepper min={1} placeholder="Menge" value={rQty} onChange={setRQty} />
+        {tpz ? (
+          <input className="text-input" placeholder="Dein Name (optional)" value={rBy} onChange={(e) => setRBy(e.target.value)} style={{ flex: "1 1 160px" }} />
+        ) : (
+          <select className="select" value={rBy} onChange={(e) => setRBy(e.target.value)}>
+            <option value="">Erfasst von (optional)</option>
+            {data.members.filter((m) => !m.archived).map((m) => <option key={m.id} value={m.name}>{m.name}</option>)}
+          </select>
+        )}
+        <button className="btn btn-primary" onClick={() => submitRecv(o, false)}>Eingang speichern</button>
+        {!tpz && <button className="btn btn-ghost" onClick={() => submitRecv(o, true)} title="Eingang speichern und die Bestellung direkt abschließen, weil die Charge schon im Reiter Material erfasst ist">Speichern &amp; abschließen</button>}
+        <button className="btn btn-ghost" onClick={() => setRecvFor(null)}>Abbrechen</button>
+      </div>
+    );
+  }
+
   return (
     <div className="tab-content">
-      <p className="hint-text">
-        Hier stehen die Artikel, die unter die Mindestmenge gefallen sind. Eine dokumentierte Bestellung erscheint im Reiter „Material“ mit dem Tag „Bestellt“. Ist die Ware da, wird die Bestellung als geliefert abgeschlossen und die Charge im Reiter „Material“ erfasst.
-      </p>
+      {tpz ? (
+        <>
+          <div className="order-note-tpz">Das Material wird hauptsächlich von den Perfusionsstudent*innen verwaltet.</div>
+          <p className="hint-text">
+            Ist eine bestellte Lieferung angekommen, kann der Eingang hier dokumentiert werden. Das Perfusionsteam sieht dann im Reiter „Bestellungen“ einen Hinweis und erfasst die Charge im Material.
+          </p>
+        </>
+      ) : (
+        <p className="hint-text">
+          Hier stehen die Artikel, die unter die Mindestmenge gefallen sind. Eine dokumentierte Bestellung erscheint im Reiter „Material“ mit dem Tag „Bestellt“. Die Menge ist optional – fehlt sie, muss sie beim Wareneingang erfasst werden. Der Wareneingang kann auch vom TPZ-Team dokumentiert werden; das Perfusionsteam erhält dann hier einen Hinweis und erfasst die Charge im Reiter „Material“.
+        </p>
+      )}
 
-      <div className="alle-panel">
-        <h3 className="alle-title">Zu bestellen {toOrder.length > 0 && <span className="alle-count alle-count-bad">{toOrder.length}</span>}</h3>
-        {toOrder.length === 0 ? (
-          <div className="alle-ok">✓ Nichts zu bestellen – alle Bestände über der Mindestmenge oder bereits bestellt.</div>
-        ) : (
+      {arrivedOrders.length > 0 && (
+        <div className="alle-panel order-arrived-panel">
+          <h3 className="alle-title">Eingegangen – {tpz ? "Perfusion ist informiert" : "bitte Charge im Material erfassen"} <span className="alle-count alle-count-ok">{arrivedOrders.length}</span></h3>
           <div className="alle-list">
-            {toOrder.map(({ mat, status }) => {
-              const missing = mat.minQty - status.total;
+            {arrivedOrders.map((o) => {
+              const mat = matById(o.materialId);
+              const by = personName(o.personId);
               return (
-                <div key={mat.id} className="order-block">
+                <div key={o.id} className="order-block">
                   <div className="order-head">
                     <div className="alle-item-main">
                       <div className="alle-item-name">{mat.name}</div>
-                      <div className="alle-item-sub">
-                        {mat.refNr ? `Ref.: ${mat.refNr}` : "keine Ref.-Nr."}{mat.liquid && materialBagSummary(mat) ? ` · ${materialBagSummary(mat)}` : ""}
+                      <div className="order-meta">
+                        Geliefert am {pdfDate(o.receivedOn)} · Menge: {gotText(o, mat)}{o.receivedBy ? ` · erfasst von ${o.receivedBy}${o.receivedVia === "tpz" ? " (TPZ)" : ""}` : (o.receivedVia === "tpz" ? " · erfasst vom TPZ" : "")}
+                        <br />Bestellt am {pdfDate(o.orderedOn)}{by ? ` von ${by}` : ""}{o.note ? ` · Notiz: ${o.note}` : ""}
                       </div>
                     </div>
                     <div className="order-head-right">
-                      <span className="mat-qty-badge mat-badge-bad">{status.total} / {mat.minQty} {materialUnit(mat)}</span>
-                      <span className="alle-missing">fehlt: {missing} {mat.liquid ? "l" : ""}</span>
+                      <span className="order-tag order-tag-arrived">Eingegangen</span>
                     </div>
                   </div>
-                  {formFor === mat.id ? renderForm(mat) : (
-                    <div className="order-actions">
-                      <button className="btn btn-primary" onClick={() => openForm(mat.id, missing)}>Bestellung dokumentieren</button>
-                    </div>
-                  )}
+                  <div className="order-actions">
+                    {!tpz && <button className="btn btn-primary" onClick={() => bookOrder(o.id)} title="Charge ist im Reiter Material erfasst">Charge erfasst – abschließen</button>}
+                    <button className="mini-btn" onClick={() => reopenOrder(o.id)}>Eingang zurücknehmen</button>
+                  </div>
                 </div>
               );
             })}
           </div>
-        )}
-        {formFor === "__manual__" ? renderForm(null) : (
-          <div className="order-actions">
-            <button className="btn btn-ghost" onClick={() => openForm("__manual__", 0)}>+ Anderen Artikel bestellen</button>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {!tpz && (
+        <div className="alle-panel">
+          <h3 className="alle-title">Zu bestellen {toOrder.length > 0 && <span className="alle-count alle-count-bad">{toOrder.length}</span>}</h3>
+          {toOrder.length === 0 ? (
+            <div className="alle-ok">✓ Nichts zu bestellen – alle Bestände über der Mindestmenge oder bereits bestellt.</div>
+          ) : (
+            <div className="alle-list">
+              {toOrder.map(({ mat, status }) => {
+                const missing = mat.minQty - status.total;
+                return (
+                  <div key={mat.id} className="order-block">
+                    <div className="order-head">
+                      <div className="alle-item-main">
+                        <div className="alle-item-name">{mat.name}</div>
+                        <div className="alle-item-sub">
+                          {mat.refNr ? `Ref.: ${mat.refNr}` : "keine Ref.-Nr."}{mat.liquid && materialBagSummary(mat) ? ` · ${materialBagSummary(mat)}` : ""}
+                        </div>
+                      </div>
+                      <div className="order-head-right">
+                        <span className="mat-qty-badge mat-badge-bad">{status.total} / {mat.minQty} {materialUnit(mat)}</span>
+                        <span className="alle-missing">fehlt: {missing} {mat.liquid ? "l" : ""}</span>
+                      </div>
+                    </div>
+                    {formFor === mat.id ? renderForm(mat) : (
+                      <div className="order-actions">
+                        <button className="btn btn-primary" onClick={() => openForm(mat.id, missing)}>Bestellung dokumentieren</button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {formFor === "__manual__" ? renderForm(null) : (
+            <div className="order-actions">
+              <button className="btn btn-ghost" onClick={() => openForm("__manual__", 0)}>+ Anderen Artikel bestellen</button>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="alle-panel">
         <h3 className="alle-title">Bestellt – Lieferung offen {openOrders.length > 0 && <span className="alle-count alle-count-warn">{openOrders.length}</span>}</h3>
@@ -3511,7 +3660,7 @@ function OrdersTab({ data, addOrder, closeOrder, reopenOrder, deleteOrder }) {
                     <div className="alle-item-main">
                       <div className="alle-item-name">{mat.name}</div>
                       <div className="order-meta">
-                        Bestellt am {pdfDate(o.orderedOn)} · Menge: {o.qty} {materialUnit(mat)}{by ? ` · von ${by}` : ""}
+                        Bestellt am {pdfDate(o.orderedOn)} · {qtyText(o, mat)}{by ? ` · von ${by}` : ""}
                         {o.note ? <><br />Notiz: {o.note}</> : null}
                       </div>
                     </div>
@@ -3520,10 +3669,12 @@ function OrdersTab({ data, addOrder, closeOrder, reopenOrder, deleteOrder }) {
                       <span className="alle-missing">Bestand: {st.total}{mat.minQty > 0 ? ` / ${mat.minQty}` : ""} {materialUnit(mat)}</span>
                     </div>
                   </div>
-                  <div className="order-actions">
-                    <button className="btn btn-primary" onClick={() => closeOrder(o.id)}>Geliefert – abschließen</button>
-                    <button className="mini-btn mat-delete" onClick={() => { if (window.confirm(`Bestellung für „${mat.name}" wirklich löschen?`)) deleteOrder(o.id); }}>Löschen</button>
-                  </div>
+                  {recvFor === o.id ? renderRecvForm(o, mat) : (
+                    <div className="order-actions">
+                      <button className="btn btn-primary" onClick={() => openRecv(o)}>Eingang dokumentieren</button>
+                      {!tpz && <button className="mini-btn mat-delete" onClick={() => { if (window.confirm(`Bestellung für „${mat.name}" wirklich löschen?`)) deleteOrder(o.id); }}>Löschen</button>}
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -3531,39 +3682,62 @@ function OrdersTab({ data, addOrder, closeOrder, reopenOrder, deleteOrder }) {
         )}
       </div>
 
-      <div className="alle-panel">
-        <h3 className="alle-title">
-          Abgeschlossene Bestellungen
-          <button className="mini-btn" onClick={() => setShowHistory((v) => !v)}>{showHistory ? "ausblenden" : `anzeigen (${history.length})`}</button>
-        </h3>
-        {showHistory && (history.length === 0 ? (
-          <p className="hint-text">Noch keine abgeschlossenen Bestellungen.</p>
-        ) : (
+      {tpz && toOrder.length > 0 && (
+        <div className="alle-panel">
+          <h3 className="alle-title">Noch zu bestellen (zur Info) <span className="alle-count alle-count-bad">{toOrder.length}</span></h3>
           <div className="alle-list">
-            {history.map((o) => {
-              const mat = matById(o.materialId);
-              const by = personName(o.personId);
-              return (
-                <div key={o.id} className="order-block">
-                  <div className="order-head">
-                    <div className="alle-item-main">
-                      <div className="alle-item-name">{mat.name}</div>
-                      <div className="order-meta">
-                        {o.qty} {materialUnit(mat)} · bestellt am {pdfDate(o.orderedOn)}{by ? ` von ${by}` : ""} · geliefert am {pdfDate(o.receivedOn)}
-                        {o.note ? <><br />Notiz: {o.note}</> : null}
-                      </div>
-                    </div>
-                    <div className="order-actions" style={{ marginTop: 0 }}>
-                      <button className="mini-btn" onClick={() => reopenOrder(o.id)}>wieder öffnen</button>
-                      <button className="mini-btn mat-delete" onClick={() => { if (window.confirm("Eintrag wirklich löschen?")) deleteOrder(o.id); }}>Löschen</button>
-                    </div>
+            {toOrder.map(({ mat, status }) => (
+              <div key={mat.id} className="order-block">
+                <div className="order-head">
+                  <div className="alle-item-main">
+                    <div className="alle-item-name">{mat.name}</div>
+                    <div className="alle-item-sub">{mat.refNr ? `Ref.: ${mat.refNr}` : "keine Ref.-Nr."}</div>
+                  </div>
+                  <div className="order-head-right">
+                    <span className="mat-qty-badge mat-badge-bad">{status.total} / {mat.minQty} {materialUnit(mat)}</span>
                   </div>
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </div>
+      )}
+
+      {!tpz && (
+        <div className="alle-panel">
+          <h3 className="alle-title">
+            Abgeschlossene Bestellungen
+            <button className="mini-btn" onClick={() => setShowHistory((v) => !v)}>{showHistory ? "ausblenden" : `anzeigen (${history.length})`}</button>
+          </h3>
+          {showHistory && (history.length === 0 ? (
+            <p className="hint-text">Noch keine abgeschlossenen Bestellungen.</p>
+          ) : (
+            <div className="alle-list">
+              {history.map((o) => {
+                const mat = matById(o.materialId);
+                const by = personName(o.personId);
+                return (
+                  <div key={o.id} className="order-block">
+                    <div className="order-head">
+                      <div className="alle-item-main">
+                        <div className="alle-item-name">{mat.name}</div>
+                        <div className="order-meta">
+                          {gotText(o, mat)} · bestellt am {pdfDate(o.orderedOn)}{by ? ` von ${by}` : ""} · geliefert am {pdfDate(o.receivedOn)}
+                          {o.note ? <><br />Notiz: {o.note}</> : null}
+                        </div>
+                      </div>
+                      <div className="order-actions" style={{ marginTop: 0 }}>
+                        <button className="mini-btn" onClick={() => reopenOrder(o.id)}>wieder öffnen</button>
+                        <button className="mini-btn mat-delete" onClick={() => { if (window.confirm("Eintrag wirklich löschen?")) deleteOrder(o.id); }}>Löschen</button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -4529,6 +4703,7 @@ function AlleTab({ data }) {
                 </div>
                 <div className="alle-item-qty">
                   {openOrderFor(data, mat.id) && <span className="order-tag">Bestellt am {pdfDate(openOrderFor(data, mat.id).orderedOn)}</span>}
+                  {!openOrderFor(data, mat.id) && arrivedOrderFor(data, mat.id) && <span className="order-tag order-tag-arrived">Eingegangen am {pdfDate(arrivedOrderFor(data, mat.id).receivedOn)}</span>}
                   <span className="mat-qty-badge mat-badge-bad">{status.total} / {mat.minQty} {materialUnit(mat)}</span>
                   <span className="alle-missing">fehlt: {mat.minQty - status.total}{mat.liquid ? " l" : ""}</span>
                 </div>
