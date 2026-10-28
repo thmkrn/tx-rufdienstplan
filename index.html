@@ -1460,10 +1460,20 @@ function buildMaterialReportPdf(materials, JsPDFCtor, extra) {
     if (st.understock && !empty) problems.push({ label: "Nachbestellen", bg: C.badBg, fg: C.heart });
     if (st.expiryState === "soon") problems.push({ label: "Läuft bald ab", bg: C.amberBg, fg: C.amberText });
     problems.sort((a, b) => RANK[a.label] - RANK[b.label]);
+    const rank0 = problems.length ? RANK[problems[0].label] : 4;
     const batches = (m.batches || []).filter((b) => b.qty > 0)
       .sort((a, b) => (a.expiry || "9999").localeCompare(b.expiry || "9999"));
     const order = openOrderFor(orderData, m.id);
-    return { m, st, unit, min, empty, problems, batches, order, rank: problems.length ? RANK[problems[0].label] : 4 };
+    const arrived = order ? null : arrivedOrderFor(orderData, m.id);
+    // Offene Bestellung: blaue Kachel „Bestellt am …“ statt „Nachbestellen“ (bei „Leer“ zusätzlich daneben).
+    // Eingegangene, noch nicht erfasste Lieferung: grüne Kachel „Eingegangen am …“.
+    const info = order ? { label: "Bestellt am " + pdfDate(order.orderedOn), bg: C.lung, fg: C.white }
+      : arrived ? { label: "Eingegangen am " + pdfDate(arrived.receivedOn), bg: C.green, fg: C.white } : null;
+    if (info && problems.length > 0) {
+      const ix = problems.findIndex((p) => p.label === "Nachbestellen");
+      if (ix >= 0) problems[ix] = info; else problems.push(info);
+    }
+    return { m, st, unit, min, empty, problems, batches, order, rank: rank0 };
   });
   items.sort((a, b) => a.rank - b.rank); // stabil: innerhalb einer Gruppe bleibt die Reihenfolge der App
 
@@ -1497,7 +1507,7 @@ function buildMaterialReportPdf(materials, JsPDFCtor, extra) {
   y += 11;
 
   /* ---------- Tabelle ---------- */
-  const X = { name: MX + 4.5, stock: 100, min: 130, mhd: 145, status: RIGHT - 2.5 };
+  const X = { name: MX + 4.5, stock: 97, min: 123, mhd: 136, status: RIGHT - 2.5 };
   const ROW_H = 11.5, PITCH = 12.4, FOOT = 284;
 
   function tableHead() {
@@ -1559,7 +1569,7 @@ function buildMaterialReportPdf(materials, JsPDFCtor, extra) {
 
     // Bestand + Balken + Hinweis
     doc.setFont("helvetica", "bold"); doc.setFontSize(10);
-    color(it.problems.some((p) => p.label === "Leer" || p.label === "Nachbestellen") ? C.heart : INK);
+    color(st.understock || it.problems.some((p) => p.label === "Leer") ? C.heart : INK);
     doc.text(st.total + " " + unit, X.stock, y + 4.3);
     if (min > 0) {
       const bw = 24, ratio = Math.max(0, Math.min(1, st.total / min));
@@ -1571,10 +1581,6 @@ function buildMaterialReportPdf(materials, JsPDFCtor, extra) {
     if (st.understock) {
       const t = "fehlt: " + (min - st.total) + " " + unit;
       color(C.heart); doc.text(t, nx, y + 10.2); nx += doc.getTextWidth(t) + 2;
-    }
-    if (it.order) {
-      color(C.lung); doc.setFont("helvetica", "bold");
-      doc.text("bestellt " + pdfDate(it.order.orderedOn), nx, y + 10.2);
     }
 
     // Mindestmenge
@@ -1691,11 +1697,13 @@ function App() {
   const [materialImages, setMaterialImages] = useState({});
 
   const localChangeFlag = useRef(false);
+  const lastLocalChange = useRef(0); // Zeitpunkt der letzten lokalen Änderung (schützt vor Überschreiben durch das Nachladen)
   const einsatzChangeFlag = useRef(false);
   const einsatzSaveTimer = useRef(null);
 
   function commit(updater) {
     localChangeFlag.current = true;
+    lastLocalChange.current = Date.now();
     setData(updater);
   }
 
@@ -1780,9 +1788,13 @@ function App() {
   // noch ungespeicherten Änderungen)
   useEffect(() => {
     const interval = setInterval(async () => {
-      if (localChangeFlag.current) return;
+      // Nicht nachladen, solange eine lokale Änderung noch nicht (sicher) gespeichert ist
+      if (localChangeFlag.current || Date.now() - lastLocalChange.current < 4000) return;
+      const changeStamp = lastLocalChange.current;
       try {
         const res = await apiGetDoc("app/state");
+        // Wurde währenddessen lokal etwas geändert, ist die geladene Antwort veraltet und wird verworfen
+        if (localChangeFlag.current || lastLocalChange.current !== changeStamp) return;
         if (res.exists) {
           const { data: normalized, changed } = normalizeData(res.data);
           setData(normalized);
@@ -2161,10 +2173,10 @@ function App() {
   }
 
   /* Materialbestellungen */
-  function addOrder(materialId, qty, orderedOn, personId, note) {
+  function addOrder(materialId, qty, orderedOn, byName, note) {
     commit((prev) => ({
       ...prev,
-      orders: [...(prev.orders || []), { id: newId(), materialId, qty, orderedOn: orderedOn || todayStr(), personId: personId || null, note: note || "", receivedOn: null }],
+      orders: [...(prev.orders || []), { id: newId(), materialId, qty, orderedOn: orderedOn || todayStr(), personId: null, orderedBy: (byName || "").trim(), note: note || "", receivedOn: null }],
     }));
   }
   function receiveOrder(orderId, qty, byName, via, alsoBook) {
@@ -3478,7 +3490,7 @@ function OrdersTab({ data, tpz, addOrder, receiveOrder, bookOrder, reopenOrder, 
     .filter((o) => o.receivedOn && o.bookedOn && matById(o.materialId))
     .sort((a, b) => (b.bookedOn || "").localeCompare(a.bookedOn || ""))
     .slice(0, 30);
-  const personName = (id) => { const m = id ? data.members.find((x) => x.id === id) : null; return m ? m.name : ""; };
+  const orderer = (o) => o.orderedBy || (o.personId ? ((data.members.find((x) => x.id === o.personId) || {}).name || "") : "");
   const qtyText = (o, mat) => (o.qty ? `Menge: ${o.qty} ${materialUnit(mat)}` : "Menge offen");
   const gotText = (o, mat) => { const q = o.receivedQty || o.qty; return q ? `${q} ${materialUnit(mat)}` : "Menge offen"; };
 
@@ -3524,10 +3536,7 @@ function OrdersTab({ data, tpz, addOrder, receiveOrder, bookOrder, reopenOrder, 
         <NumberStepper min={1} placeholder="Menge" value={fQty} onChange={setFQty} />
         <span className="field-label">Bestellt am:</span>
         <input className="text-input" type="date" value={fDate} onChange={(e) => setFDate(e.target.value)} />
-        <select className="select" value={fBy} onChange={(e) => setFBy(e.target.value)}>
-          <option value="">Bestellt von (optional)</option>
-          {data.members.filter((m) => !m.archived).map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
-        </select>
+        <input className="text-input" placeholder="Dein Name (optional)" value={fBy} onChange={(e) => setFBy(e.target.value)} style={{ flex: "1 1 160px" }} />
         <input className="text-input" placeholder="Notiz (optional), z. B. Lieferant oder Bestellnummer" value={fNote} onChange={(e) => setFNote(e.target.value)} style={{ flex: "1 1 220px" }} />
         {!fQty && <div className="order-meta" style={{ flex: "1 1 100%" }}>Ohne Menge: Sie muss dann beim Wareneingang erfasst werden.</div>}
         <button className="btn btn-primary" onClick={submitForm}>Bestellung speichern</button>
@@ -3541,14 +3550,7 @@ function OrdersTab({ data, tpz, addOrder, receiveOrder, bookOrder, reopenOrder, 
       <div className="order-form">
         <span className="field-label">Gelieferte Menge ({mat.liquid ? "Liter" : "Stück"}){o.qty ? "" : " – Pflicht"}:</span>
         <NumberStepper min={1} placeholder="Menge" value={rQty} onChange={setRQty} />
-        {tpz ? (
-          <input className="text-input" placeholder="Dein Name (optional)" value={rBy} onChange={(e) => setRBy(e.target.value)} style={{ flex: "1 1 160px" }} />
-        ) : (
-          <select className="select" value={rBy} onChange={(e) => setRBy(e.target.value)}>
-            <option value="">Erfasst von (optional)</option>
-            {data.members.filter((m) => !m.archived).map((m) => <option key={m.id} value={m.name}>{m.name}</option>)}
-          </select>
-        )}
+        <input className="text-input" placeholder="Dein Name (optional)" value={rBy} onChange={(e) => setRBy(e.target.value)} style={{ flex: "1 1 160px" }} />
         <button className="btn btn-primary" onClick={() => submitRecv(o, false)}>Eingang speichern</button>
         {!tpz && <button className="btn btn-ghost" onClick={() => submitRecv(o, true)} title="Eingang speichern und die Bestellung direkt abschließen, weil die Charge schon im Reiter Material erfasst ist">Speichern &amp; abschließen</button>}
         <button className="btn btn-ghost" onClick={() => setRecvFor(null)}>Abbrechen</button>
@@ -3562,12 +3564,12 @@ function OrdersTab({ data, tpz, addOrder, receiveOrder, bookOrder, reopenOrder, 
         <>
           <div className="order-note-tpz">Das Material wird hauptsächlich von den Perfusionsstudent*innen verwaltet.</div>
           <p className="hint-text">
-            Ist eine bestellte Lieferung angekommen, kann der Eingang hier dokumentiert werden. Das Perfusionsteam sieht dann im Reiter „Bestellungen“ einen Hinweis und erfasst die Charge im Material.
+            Hier können Bestellungen erfasst werden. Ist eine bestellte Lieferung angekommen, wird der Eingang hier dokumentiert. Das Perfusionsteam sieht dann im Reiter „Bestellungen“ einen Hinweis und erfasst die Charge im Material.
           </p>
         </>
       ) : (
         <p className="hint-text">
-          Hier stehen die Artikel, die unter die Mindestmenge gefallen sind. Eine dokumentierte Bestellung erscheint im Reiter „Material“ mit dem Tag „Bestellt“. Die Menge ist optional – fehlt sie, muss sie beim Wareneingang erfasst werden. Der Wareneingang kann auch vom TPZ-Team dokumentiert werden; das Perfusionsteam erhält dann hier einen Hinweis und erfasst die Charge im Reiter „Material“.
+          Hier stehen die Artikel, die unter die Mindestmenge gefallen sind. Eine dokumentierte Bestellung erscheint im Reiter „Material“ mit dem Tag „Bestellt“. Die Menge ist optional – fehlt sie, muss sie beim Wareneingang erfasst werden. Bestellungen und Wareneingang können auch vom TPZ-Team erfasst werden; das Perfusionsteam erhält dann hier einen Hinweis und erfasst die Charge im Reiter „Material“.
         </p>
       )}
 
@@ -3577,7 +3579,7 @@ function OrdersTab({ data, tpz, addOrder, receiveOrder, bookOrder, reopenOrder, 
           <div className="alle-list">
             {arrivedOrders.map((o) => {
               const mat = matById(o.materialId);
-              const by = personName(o.personId);
+              const by = orderer(o);
               return (
                 <div key={o.id} className="order-block">
                   <div className="order-head">
@@ -3603,7 +3605,7 @@ function OrdersTab({ data, tpz, addOrder, receiveOrder, bookOrder, reopenOrder, 
         </div>
       )}
 
-      {!tpz && (
+      {(
         <div className="alle-panel">
           <h3 className="alle-title">Zu bestellen {toOrder.length > 0 && <span className="alle-count alle-count-bad">{toOrder.length}</span>}</h3>
           {toOrder.length === 0 ? (
@@ -3653,7 +3655,7 @@ function OrdersTab({ data, tpz, addOrder, receiveOrder, bookOrder, reopenOrder, 
             {openOrders.map((o) => {
               const mat = matById(o.materialId);
               const st = materialStatus(mat);
-              const by = personName(o.personId);
+              const by = orderer(o);
               return (
                 <div key={o.id} className="order-block">
                   <div className="order-head">
@@ -3682,27 +3684,6 @@ function OrdersTab({ data, tpz, addOrder, receiveOrder, bookOrder, reopenOrder, 
         )}
       </div>
 
-      {tpz && toOrder.length > 0 && (
-        <div className="alle-panel">
-          <h3 className="alle-title">Noch zu bestellen (zur Info) <span className="alle-count alle-count-bad">{toOrder.length}</span></h3>
-          <div className="alle-list">
-            {toOrder.map(({ mat, status }) => (
-              <div key={mat.id} className="order-block">
-                <div className="order-head">
-                  <div className="alle-item-main">
-                    <div className="alle-item-name">{mat.name}</div>
-                    <div className="alle-item-sub">{mat.refNr ? `Ref.: ${mat.refNr}` : "keine Ref.-Nr."}</div>
-                  </div>
-                  <div className="order-head-right">
-                    <span className="mat-qty-badge mat-badge-bad">{status.total} / {mat.minQty} {materialUnit(mat)}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {!tpz && (
         <div className="alle-panel">
           <h3 className="alle-title">
@@ -3715,7 +3696,7 @@ function OrdersTab({ data, tpz, addOrder, receiveOrder, bookOrder, reopenOrder, 
             <div className="alle-list">
               {history.map((o) => {
                 const mat = matById(o.materialId);
-                const by = personName(o.personId);
+                const by = orderer(o);
                 return (
                   <div key={o.id} className="order-block">
                     <div className="order-head">
