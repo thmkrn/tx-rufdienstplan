@@ -402,6 +402,18 @@
       }
       .mat-name { font-weight: 600; font-size: 14px; }
       .mat-ref { font-size: 11px; color: var(--muted); margin-top: 1px; }
+      .mat-bags { font-weight: 600; color: var(--ink); }
+      .order-tag { background: var(--lung); color: var(--panel); font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
+      .order-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; }
+      .order-form .field-label { white-space: nowrap; }
+      .order-meta { font-size: 12px; color: var(--muted); line-height: 1.45; }
+      .order-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 6px; }
+      .order-block { display: flex; flex-direction: column; padding: 10px 0; border-top: 1px solid var(--line); gap: 6px; }
+      .order-block:first-child { border-top: none; }
+      .order-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
+      .order-head-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+      .liquid-size-picker { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+      .liquid-sum { font-weight: 700; font-size: 13px; }
       .mat-qty-badge, .mat-expiry-badge {
         font-size: 12px;
         font-weight: 600;
@@ -742,7 +754,7 @@
       /* Untermenü: PC = in der Kopfleiste, Handy/schmal = unter den Hauptreitern */
       .tab-nav-below { display: none; padding: 10px 20px; background: var(--panel); border-bottom: 1px solid var(--line); }
       .tab-nav-tpz .tab-btn.active { background: var(--lung); border-color: var(--lung); }
-      @media (max-width: 860px) {
+      @media (max-width: 1180px) {
         .tab-nav-header { display: none; }
         .tab-nav-below { display: flex; }
         .tab-nav-below .tab-btn { flex: 1 1 auto; }
@@ -917,8 +929,8 @@ const MATERIALS_SEED = [
   { id: "ao_kanuele_12ga", name: "Ao.-Kanüle 12GA", refNr: "FLK C38 K20", minQty: 3, usage: "herz" },
   { id: "perf_set_4laeufig", name: "4-läufiges Perf.-Set", refNr: "DE27070260", minQty: 5, usage: "lunge" },
   { id: "perf_set_2laeufig", name: "2-läufiges Perf.-Set", refNr: "", minQty: 3, usage: "herz" },
-  { id: "custodiol_2l", name: "Custodiol 2l-Beutel", refNr: "PZN 00867348", minQty: 0, usage: "herz" },
-  { id: "perfadex_1l", name: "Perfadex 1l-Beutel", refNr: "19811", minQty: 0, usage: "lunge" },
+  { id: "custodiol_2l", name: "Custodiol", refNr: "PZN 00867348", minQty: 0, usage: "herz", liquid: true },
+  { id: "perfadex_1l", name: "Perfadex", refNr: "19811", minQty: 0, usage: "lunge", liquid: true },
   { id: "nacl_09", name: "NaCl 0,9%-Beutel", refNr: "PZN 00646268", minQty: 0, usage: "herz" },
   { id: "ringer_1l", name: "Ringer-Spülung 1l Flasche", refNr: "PZN 04801719", minQty: 0, usage: "herz" },
 ];
@@ -1056,6 +1068,7 @@ function defaultData() {
     checklists: JSON.parse(JSON.stringify(CHECKLISTS_SEED)),
     statsBaseline: {},
     materialChecks: [],
+    orders: [],
   };
 }
 
@@ -1069,8 +1082,68 @@ function daysUntil(dateStr) {
   return Math.round((d.getTime() - t.getTime()) / 86400000);
 }
 
+/* Lösungen (Perfadex, Custodiol) werden in Litern geführt: pro Charge Beutelgröße (1/2/3 l) × Anzahl Beutel.
+   Für alle anderen Materialien bleibt alles beim Alten (Stückzahl). */
+const LIQUID_SIZES = [1, 2, 3];
+const LIQUID_MIGRATION = {
+  custodiol_2l: { oldName: "Custodiol 2l-Beutel", name: "Custodiol", sizeL: 2 },
+  perfadex_1l: { oldName: "Perfadex 1l-Beutel", name: "Perfadex", sizeL: 1 },
+};
+
+// Offene Bestellung (noch nicht als geliefert abgeschlossen) zu einem Material
+function openOrderFor(data, materialId) {
+  const list = (data.orders || []).filter((o) => o.materialId === materialId && !o.receivedOn);
+  list.sort((a, b) => (b.orderedOn || "").localeCompare(a.orderedOn || ""));
+  return list[0] || null;
+}
+
+function batchSizeL(b) { return b.sizeL || 1; }
+function batchLiters(mat, b) { return (b.qty || 0) * (mat.liquid ? batchSizeL(b) : 1); }
+function materialUnit(mat) { return mat.liquid ? "l" : "Stk."; }
+
 function materialTotalQty(mat) {
-  return (mat.batches || []).reduce((sum, b) => sum + (b.qty || 0), 0);
+  return (mat.batches || []).reduce((sum, b) => sum + batchLiters(mat, b), 0);
+}
+
+// z. B. "2 × 3 l + 4 × 1 l" – zeigt, woraus sich die Literzahl zusammensetzt
+function materialBagSummary(mat) {
+  if (!mat.liquid) return "";
+  const bySize = {};
+  (mat.batches || []).forEach((b) => { if (b.qty > 0) bySize[batchSizeL(b)] = (bySize[batchSizeL(b)] || 0) + b.qty; });
+  return Object.keys(bySize).map(Number).sort((a, b) => b - a).map((sz) => `${bySize[sz]} × ${sz} l`).join(" + ");
+}
+
+function batchLabel(mat, b) {
+  return mat.liquid ? `${b.qty} × ${batchSizeL(b)} l` : `${b.qty} Stk.`;
+}
+
+// Verbrauch einer Lösung in Litern: älteste Charge (MHD) zuerst; wird ein Beutel nur teilweise gebraucht,
+// bleibt der Rest als Beutel mit der restlichen Literzahl erhalten.
+function consumeLiquidBatches(batches, liters) {
+  let need = liters;
+  const sorted = [...batches].sort((a, b) => {
+    if (!a.expiry && !b.expiry) return 0;
+    if (!a.expiry) return 1;
+    if (!b.expiry) return -1;
+    return a.expiry.localeCompare(b.expiry);
+  });
+  const out = [];
+  for (const b of sorted) {
+    if (need <= 0) { out.push(b); continue; }
+    const size = batchSizeL(b);
+    const total = (b.qty || 0) * size;
+    if (total <= need) { need -= total; continue; }
+    const fullBags = Math.floor(need / size);
+    need -= fullBags * size;
+    let left = b.qty - fullBags;
+    if (need > 0 && left > 0) {
+      out.push({ id: newId(), qty: 1, sizeL: size - need, expiry: b.expiry || null, lot: b.lot || "" });
+      left -= 1;
+      need = 0;
+    }
+    if (left > 0) out.push({ ...b, qty: left });
+  }
+  return out;
 }
 
 function materialSoonestExpiry(mat) {
@@ -1317,96 +1390,218 @@ async function ensureJsPDF() {
   throw new Error("Die PDF-Bibliothek konnte von keiner Quelle geladen werden (Netzwerk/Firewall prüfen)." + (lastError ? " (" + lastError.message + ")" : ""));
 }
 
-function buildMaterialReportPdf(materials, JsPDFCtor) {
+function pdfDate(iso) {
+  if (!iso) return "";
+  const p = String(iso).slice(0, 10).split("-");
+  return p.length === 3 ? p[2] + "." + p[1] + "." + p[0] : String(iso);
+}
+
+function buildMaterialReportPdf(materials, JsPDFCtor, extra) {
   const doc = new JsPDFCtor({ unit: "mm", format: "a4" });
-  const marginX = 14;
-  const rightEdge = 196;
-  let y = 18;
-  doc.setFontSize(16);
-  doc.text("Team Thoraxorgane - Materialbericht", marginX, y);
-  y += 7;
-  doc.setFontSize(10);
-  doc.text("Stand: " + new Date().toLocaleString("de-DE"), marginX, y);
-  y += 7;
+  const PW = 210, PH = 297, MX = 14, RIGHT = PW - MX;
+  const now = new Date();
+  const stand = pdfDate(todayStr()) + ", " + pad(now.getHours()) + ":" + pad(now.getMinutes()) + " Uhr";
+  const orderData = { orders: (extra && extra.orders) || [] };
 
-  // Legende
-  const legendItems = [
-    { label: "Leer", bg: [196, 57, 49] },
-    { label: "Nachbestellen / abgelaufen", bg: [237, 150, 130] },
-    { label: "Laeuft bald ab", bg: [247, 214, 123] },
-  ];
-  doc.setFontSize(8);
-  let lx = marginX;
-  legendItems.forEach((item) => {
-    doc.setFillColor(item.bg[0], item.bg[1], item.bg[2]);
-    doc.rect(lx, y - 3, 4, 4, "F");
-    doc.setTextColor(20, 20, 20);
-    doc.text(item.label, lx + 6, y);
-    lx += 6 + doc.getTextWidth(item.label) + 8;
-  });
-  y += 7;
+  // Farben wie in der App
+  const C = {
+    bg: [240, 238, 231], panel: [251, 250, 246], ink: [32, 38, 47], muted: [118, 111, 98], line: [218, 213, 200],
+    heart: [178, 58, 50], lung: [62, 124, 138], green: [76, 122, 82], greenBg: [228, 237, 227],
+    amber: [180, 121, 31], amberBg: [243, 229, 199], amberText: [138, 77, 16], badBg: [245, 220, 217], white: [255, 255, 255],
+  };
+  const fill = (c) => doc.setFillColor(c[0], c[1], c[2]);
+  const stroke = (c) => doc.setDrawColor(c[0], c[1], c[2]);
+  const color = (c) => doc.setTextColor(c[0], c[1], c[2]);
+  function paintPage() { fill(C.bg); doc.rect(0, 0, PW, PH, "F"); }
 
-  const colX = [marginX, marginX + 68, marginX + 100, marginX + 118, marginX + 140, marginX + 168];
-  const headers = ["Artikel", "Verwendung", "Bestand", "Mind.", "MHD", "Status"];
-
-  function drawHeaderRow() {
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(20, 20, 20);
-    headers.forEach((h, i) => doc.text(h, colX[i], y));
-    doc.setFont("helvetica", "normal");
-    y += 2;
-    doc.line(marginX, y, rightEdge, y);
-    y += 5;
-  }
-
-  function fitToWidth(text, maxWidthMm) {
-    doc.setFontSize(8.5);
-    if (doc.getTextWidth(text) <= maxWidthMm) return text;
+  function fitText(text, maxW, size, style) {
+    doc.setFont("helvetica", style || "normal"); doc.setFontSize(size);
+    if (doc.getTextWidth(text) <= maxW) return text;
     let cut = text;
-    while (cut.length > 1 && doc.getTextWidth(cut + "...") > maxWidthMm) {
-      cut = cut.slice(0, -1);
-    }
+    while (cut.length > 1 && doc.getTextWidth(cut + "...") > maxW) cut = cut.slice(0, -1);
     return cut + "...";
   }
-
-  function rowHighlightFor(status) {
-    if (status.total === 0) return { bg: [196, 57, 49], text: [255, 255, 255], label: "Leer" };
-    if (status.understock) return { bg: [237, 150, 130], text: [90, 15, 8], label: "Nachbestellen" };
-    if (status.expiryState === "expired") return { bg: [237, 150, 130], text: [90, 15, 8], label: "Abgelaufen" };
-    if (status.expiryState === "soon") return { bg: [247, 214, 123], text: [94, 68, 10], label: "Laeuft bald ab" };
-    return null;
+  function pill(text, right, cy, bg, fg) {
+    doc.setFont("helvetica", "bold"); doc.setFontSize(7);
+    const w = doc.getTextWidth(text) + 4.6;
+    fill(bg); doc.roundedRect(right - w, cy - 2, w, 4, 2, 2, "F");
+    color(fg); doc.text(text, right - w / 2, cy + 0.85, { align: "center" });
   }
 
-  drawHeaderRow();
-
-  materials.forEach((m) => {
-    try {
-      const status = materialStatus(m);
-      if (y > 275) { doc.addPage(); y = 18; drawHeaderRow(); }
-      const hl = rowHighlightFor(status);
-      if (hl) {
-        doc.setFillColor(hl.bg[0], hl.bg[1], hl.bg[2]);
-        doc.rect(marginX - 2, y - 4.2, rightEdge - marginX + 2, 5.8, "F");
-        doc.setTextColor(hl.text[0], hl.text[1], hl.text[2]);
-      } else {
-        doc.setTextColor(20, 20, 20);
-      }
-      doc.setFontSize(8.5);
-      doc.text(fitToWidth(m.name || "-", 64), colX[0], y);
-      doc.text(USAGE_LABELS[m.usage] || "-", colX[1], y);
-      doc.text(String(status.total), colX[2], y);
-      doc.text(String(m.minQty || 0), colX[3], y);
-      doc.text(status.soonest || "-", colX[4], y);
-      const statusLabel = hl ? hl.label : "OK";
-      doc.text(statusLabel, colX[5], y);
-      y += 6;
-    } catch (rowErr) {
-      console.error("PDF-Zeile uebersprungen wegen Fehler", m, rowErr);
-    }
+  /* ---------- Auswertung ---------- */
+  const RANK = { "Leer": 0, "Abgelaufen": 1, "Nachbestellen": 2, "Läuft bald ab": 3 };
+  const items = materials.map((m) => {
+    const st = materialStatus(m);
+    const unit = materialUnit(m);
+    const min = m.minQty || 0;
+    const empty = st.total === 0;
+    const problems = [];
+    if (min > 0 && empty) problems.push({ label: "Leer", bg: C.heart, fg: C.white });
+    if (st.expiryState === "expired") problems.push({ label: "Abgelaufen", bg: C.badBg, fg: C.heart });
+    if (st.understock && !empty) problems.push({ label: "Nachbestellen", bg: C.badBg, fg: C.heart });
+    if (st.expiryState === "soon") problems.push({ label: "Läuft bald ab", bg: C.amberBg, fg: C.amberText });
+    problems.sort((a, b) => RANK[a.label] - RANK[b.label]);
+    const batches = (m.batches || []).filter((b) => b.qty > 0)
+      .sort((a, b) => (a.expiry || "9999").localeCompare(b.expiry || "9999"));
+    const order = openOrderFor(orderData, m.id);
+    return { m, st, unit, min, empty, problems, batches, order, rank: problems.length ? RANK[problems[0].label] : 4 };
   });
+  items.sort((a, b) => a.rank - b.rank); // stabil: innerhalb einer Gruppe bleibt die Reihenfolge der App
 
-  doc.setTextColor(0, 0, 0);
+  /* ---------- Kopf (schlicht) ---------- */
+  paintPage();
+  fill(C.panel); doc.rect(0, 0, PW, 22, "F");
+  stroke(C.line); doc.setLineWidth(0.3); doc.line(0, 22, PW, 22);
+  doc.setFont("times", "bold"); doc.setFontSize(17); color(C.ink);
+  doc.text("Materialbericht", MX, 12.5);
+  doc.setFont("helvetica", "normal"); doc.setFontSize(9); color(C.muted);
+  doc.text("Team Thoraxorgane", MX, 18);
+  doc.text("Stand: " + stand, RIGHT, 12.5, { align: "right" });
+
+  /* ---------- Materialkontrolle ---------- */
+  let y = 29;
+  const checks = ((extra && extra.checks) || []).slice().sort((a, b) => b.date.localeCompare(a.date));
+  const last = checks[0] || null;
+  let checkText, checkWarn = false;
+  if (last) {
+    const person = last.personId ? (((extra && extra.members) || []).find((x) => x.id === last.personId) || {}).name : "";
+    const ago = -daysUntil(last.date);
+    checkWarn = ago > MATERIAL_CHECK_INTERVAL_DAYS;
+    checkText = "Letzte vollständige Materialkontrolle: " + pdfDate(last.date) + (person ? " (" + person + ")" : "") + " · vor " + ago + (ago === 1 ? " Tag" : " Tagen") + (checkWarn ? " · überfällig" : "");
+  } else {
+    checkText = "Noch keine vollständige Materialkontrolle erfasst";
+    checkWarn = true;
+  }
+  fill(checkWarn ? C.amberBg : C.greenBg); doc.roundedRect(MX, y, RIGHT - MX, 7, 1.5, 1.5, "F");
+  doc.setFont("helvetica", "bold"); doc.setFontSize(8); color(checkWarn ? C.amberText : C.green);
+  doc.text(checkText, MX + 3.5, y + 4.6);
+  y += 11;
+
+  /* ---------- Tabelle ---------- */
+  const X = { name: MX + 4.5, stock: 100, min: 130, mhd: 145, status: RIGHT - 2.5 };
+  const ROW_H = 11.5, PITCH = 12.4, FOOT = 284;
+
+  function tableHead() {
+    doc.setFont("helvetica", "bold"); doc.setFontSize(6.8); color(C.muted);
+    doc.text("ARTIKEL", X.name, y + 2.6);
+    doc.text("BESTAND", X.stock, y + 2.6);
+    doc.text("MIND.", X.min, y + 2.6);
+    doc.text("NÄCHSTES MHD", X.mhd, y + 2.6);
+    doc.text("STATUS", X.status, y + 2.6, { align: "right" });
+    stroke(C.line); doc.setLineWidth(0.3); doc.line(MX, y + 4.2, RIGHT, y + 4.2);
+    y += 6;
+  }
+  function newPage() {
+    doc.addPage(); paintPage();
+    fill(C.panel); doc.rect(0, 0, PW, 12, "F"); stroke(C.line); doc.setLineWidth(0.3); doc.line(0, 12, PW, 12);
+    doc.setFont("times", "bold"); doc.setFontSize(10.5); color(C.ink); doc.text("Materialbericht · Team Thoraxorgane", MX, 8);
+    y = 18; tableHead();
+  }
+
+  function sectionHead(title, count, accent, faded) {
+    if (y + 9 + ROW_H > FOOT) newPage();
+    doc.setFont("times", "bold"); doc.setFontSize(12); color(faded ? C.muted : C.ink);
+    doc.text(title, MX, y + 4);
+    const tw = doc.getTextWidth(title);
+    pill(String(count), MX + tw + 3 + (doc.getTextWidth(String(count)) + 4.6), y + 2.9, faded ? C.line : C.badBg, faded ? C.muted : accent);
+    y += 7.5;
+  }
+
+  function drawRow(it, faded) {
+    const { m, st, unit, min } = it;
+    if (y + ROW_H > FOOT) newPage();
+    const INK = faded ? [128, 124, 114] : C.ink, MUT = faded ? [160, 155, 142] : C.muted;
+    const nameMaxW = X.stock - X.name - 4;
+
+    fill(faded ? [246, 244, 238] : C.white); stroke(C.line); doc.setLineWidth(0.25);
+    doc.roundedRect(MX, y, RIGHT - MX, ROW_H, 1.2, 1.2, "FD");
+    const major = faded ? [196, 205, 192] : (it.rank <= 2 ? C.heart : C.amber);
+    fill(major); doc.rect(MX, y + 0.8, 1, ROW_H - 1.6, "F");
+
+    // Zeile 1: Name, Zeile 2: Ref., Zeile 3: Charge(n)
+    doc.setFont("helvetica", "bold"); doc.setFontSize(9); color(INK);
+    doc.text(fitText(m.name || "-", nameMaxW, 9, "bold"), X.name, y + 4.1);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(7); color(MUT);
+    doc.text(m.refNr ? "Ref.: " + m.refNr : "keine Ref.-Nr.", X.name, y + 7.4);
+    let chargeLine = "";
+    if (m.liquid) {
+      chargeLine = it.batches.length
+        ? "Chargen: " + it.batches.map((b) => (b.lot || "ohne LOT") + ": " + b.qty + " × " + batchSizeL(b) + " l").join(" · ")
+        : "";
+    } else {
+      const b = it.batches.find((x) => x.expiry);
+      if (b) chargeLine = "Charge " + (b.lot || "ohne LOT") + " · " + b.qty + " Stk.";
+    }
+    if (chargeLine) {
+      const expired = st.expiryState === "expired", soon = st.expiryState === "soon";
+      color(expired ? C.heart : soon ? C.amberText : MUT);
+      doc.text(fitText(chargeLine, nameMaxW, 7), X.name, y + 10.4);
+    }
+
+    // Bestand + Balken + Hinweis
+    doc.setFont("helvetica", "bold"); doc.setFontSize(10);
+    color(it.problems.some((p) => p.label === "Leer" || p.label === "Nachbestellen") ? C.heart : INK);
+    doc.text(st.total + " " + unit, X.stock, y + 4.3);
+    if (min > 0) {
+      const bw = 24, ratio = Math.max(0, Math.min(1, st.total / min));
+      fill(C.line); doc.roundedRect(X.stock, y + 5.6, bw, 1.6, 0.8, 0.8, "F");
+      if (ratio > 0) { fill(st.understock ? C.heart : (faded ? [168, 190, 168] : C.green)); doc.roundedRect(X.stock, y + 5.6, Math.max(1.6, bw * ratio), 1.6, 0.8, 0.8, "F"); }
+    }
+    let nx = X.stock;
+    doc.setFont("helvetica", "normal"); doc.setFontSize(6.6);
+    if (st.understock) {
+      const t = "fehlt: " + (min - st.total) + " " + unit;
+      color(C.heart); doc.text(t, nx, y + 10.2); nx += doc.getTextWidth(t) + 2;
+    }
+    if (it.order) {
+      color(C.lung); doc.setFont("helvetica", "bold");
+      doc.text("bestellt " + pdfDate(it.order.orderedOn), nx, y + 10.2);
+    }
+
+    // Mindestmenge
+    doc.setFont("helvetica", "normal"); doc.setFontSize(9); color(INK);
+    doc.text(min > 0 ? min + " " + unit : "-", X.min, y + 4.3);
+
+    // MHD (der Charge mit dem kürzesten MHD)
+    if (st.soonest) {
+      const bad = st.expiryState === "expired", soon = st.expiryState === "soon";
+      doc.setFont("helvetica", bad || soon ? "bold" : "normal"); doc.setFontSize(8.5);
+      color(bad ? C.heart : soon ? C.amberText : INK);
+      doc.text(pdfDate(st.soonest), X.mhd, y + 4.3);
+    } else {
+      doc.setFont("helvetica", "normal"); doc.setFontSize(8.5); color(MUT);
+      doc.text("kein MHD", X.mhd, y + 4.3);
+    }
+
+    // Status
+    const pills = it.problems.length ? it.problems : [it.empty ? { label: "Kein Bestand", bg: C.bg, fg: MUT } : { label: "OK", bg: faded ? [236, 241, 234] : C.greenBg, fg: faded ? [128, 160, 130] : C.green }];
+    pills.slice(0, 2).forEach((p, i) => pill(p.label, X.status, y + (pills.length > 1 ? 3.4 + i * 5 : 5.75), p.bg, p.fg));
+    y += PITCH;
+  }
+
+  const action = items.filter((it) => it.problems.length > 0);
+  const fine = items.filter((it) => it.problems.length === 0);
+  if (action.length) {
+    sectionHead("Handlungsbedarf", action.length, C.heart, false);
+    tableHead();
+    action.forEach((it) => drawRow(it, false));
+  }
+  if (fine.length) {
+    if (action.length) y += 3;
+    sectionHead("In Ordnung", fine.length, C.muted, true);
+    if (!action.length) tableHead();
+    fine.forEach((it) => drawRow(it, true));
+  }
+
+  /* ---------- Fuß: Seitenzahlen ---------- */
+  const pages = doc.getNumberOfPages();
+  for (let p = 1; p <= pages; p++) {
+    doc.setPage(p);
+    stroke(C.line); doc.setLineWidth(0.3); doc.line(MX, 289, RIGHT, 289);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(7.5); color(C.muted);
+    doc.text("Team Thoraxorgane · Materialbericht · Stand " + stand, MX, 293.5);
+    doc.text("Seite " + p + " von " + pages, RIGHT, 293.5, { align: "right" });
+  }
 
   return doc.output("blob");
 }
@@ -1489,6 +1684,19 @@ function App() {
     let changed = false;
     if (!remote.materials) { remote.materials = MATERIALS_SEED.map((m) => ({ ...m, batches: [] })); changed = true; }
     remote.materials = remote.materials.map((m) => ({ usage: m.usage || null, ...m }));
+    if (!Array.isArray(remote.orders)) { remote.orders = []; changed = true; }
+    // Perfadex/Custodiol: bisherige Beutel-Posten werden zu Lösungen in Litern (Bestand bleibt erhalten)
+    remote.materials = remote.materials.map((m) => {
+      const mig = LIQUID_MIGRATION[m.id];
+      if (!mig || m.liquid !== undefined) return m;
+      changed = true;
+      return {
+        ...m,
+        liquid: true,
+        name: m.name === mig.oldName ? mig.name : m.name,
+        batches: (m.batches || []).map((b) => ({ ...b, sizeL: b.sizeL || mig.sizeL })),
+      };
+    });
     if (!remote.members) {
       remote.members = MEMBERS_BASE.map((m) => ({ id: m.id, name: m.name, phone: "", color: m.color, calendarToken: generateToken() }));
       changed = true;
@@ -1851,12 +2059,12 @@ function App() {
     setViewMonth((m) => { if (m === 11) { setViewYear((y) => y + 1); return 0; } return m + 1; });
   }
 
-  function addBatch(materialId, qty, expiry, lot) {
+  function addBatch(materialId, qty, expiry, lot, sizeL) {
     commit((prev) => ({
       ...prev,
       materials: prev.materials.map((m) =>
         m.id === materialId
-          ? { ...m, batches: [...m.batches, { id: newId(), qty, expiry: expiry || null, lot: lot || "" }] }
+          ? { ...m, batches: [...m.batches, { id: newId(), qty, expiry: expiry || null, lot: lot || "", ...(m.liquid ? { sizeL: sizeL || 1 } : {}) }] }
           : m
       ),
     }));
@@ -1867,6 +2075,7 @@ function App() {
       ...prev,
       materials: prev.materials.map((m) => {
         if (m.id !== materialId) return m;
+        if (m.liquid) return { ...m, batches: consumeLiquidBatches(m.batches, qty) };
         let remaining = qty;
         const sorted = [...m.batches].sort((a, b) => {
           if (!a.expiry && !b.expiry) return 0;
@@ -1910,6 +2119,23 @@ function App() {
 
   function deleteMaterial(materialId) {
     commit((prev) => ({ ...prev, materials: prev.materials.filter((m) => m.id !== materialId) }));
+  }
+
+  /* Materialbestellungen */
+  function addOrder(materialId, qty, orderedOn, personId, note) {
+    commit((prev) => ({
+      ...prev,
+      orders: [...(prev.orders || []), { id: newId(), materialId, qty, orderedOn: orderedOn || todayStr(), personId: personId || null, note: note || "", receivedOn: null }],
+    }));
+  }
+  function closeOrder(orderId) {
+    commit((prev) => ({ ...prev, orders: (prev.orders || []).map((o) => (o.id === orderId ? { ...o, receivedOn: todayStr() } : o)) }));
+  }
+  function reopenOrder(orderId) {
+    commit((prev) => ({ ...prev, orders: (prev.orders || []).map((o) => (o.id === orderId ? { ...o, receivedOn: null } : o)) }));
+  }
+  function deleteOrder(orderId) {
+    commit((prev) => ({ ...prev, orders: (prev.orders || []).filter((o) => o.id !== orderId) }));
   }
 
   function updateMaterialName(materialId, name) {
@@ -2013,7 +2239,7 @@ function App() {
   async function exportMaterialPdf() {
     try {
       const JsPDFCtor = await ensureJsPDF();
-      const blob = buildMaterialReportPdf(data.materials || [], JsPDFCtor);
+      const blob = buildMaterialReportPdf(data.materials || [], JsPDFCtor, { checks: data.materialChecks || [], members: data.members || [], orders: data.orders || [] });
       triggerBrowserDownload(blob, "material-bericht.pdf");
     } catch (e) {
       console.error("PDF-Export fehlgeschlagen", e);
@@ -2166,7 +2392,7 @@ function App() {
   /* ---------- Render: App ---------- */
 
   // Untermenü des jeweiligen Hauptbereichs: am PC in der Kopfleiste, am Handy unter den Hauptreitern
-  const rdNavItems = [["uebersicht", "Übersicht"], ["einsatz", "Im Einsatz"], ["material", "Material"], ["verfuegbar", "Verfügbarkeit"], ["admin", "Admin"], ["statistik", "Statistik"]];
+  const rdNavItems = [["uebersicht", "Übersicht"], ["einsatz", "Im Einsatz"], ["material", "Material"], ["bestellungen", "Materialbestellungen verwalten"], ["verfuegbar", "Verfügbarkeit"], ["admin", "Admin"], ["statistik", "Statistik"]];
   const tpzNavItems = [["plan", "Plan"], ["verfuegbar", "Verfügbarkeit"], ["admin", "Admin"], ["statistik", "Statistik"]];
   const renderModeNav = (where) => {
     const isTpz = mode === "tpz";
@@ -2291,6 +2517,9 @@ function App() {
             addMaterialCheck={addMaterialCheck}
             deleteMaterialCheck={deleteMaterialCheck}
           />
+        )}
+        {tab === "bestellungen" && (
+          <OrdersTab data={data} addOrder={addOrder} closeOrder={closeOrder} reopenOrder={reopenOrder} deleteOrder={deleteOrder} />
         )}
         {tab === "einsatz" && (
           <EinsatzTab
@@ -2834,6 +3063,7 @@ function MaterialTab({ data, materialImages, addBatch, consumeQty, deleteBatch, 
   const [expanded, setExpanded] = useState({});
   const [batchForm, setBatchForm] = useState(null);
   const [batchQty, setBatchQty] = useState("");
+  const [batchSize, setBatchSize] = useState(1);
   const [batchExpiry, setBatchExpiry] = useState("");
   const [batchLot, setBatchLot] = useState("");
   const [consumeForm, setConsumeForm] = useState(null);
@@ -2881,11 +3111,11 @@ function MaterialTab({ data, materialImages, addBatch, consumeQty, deleteBatch, 
 
   function toggleExpand(id) { setExpanded((e) => ({ ...e, [id]: !e[id] })); }
 
-  function openBatchForm(id) { setBatchForm(id); setBatchQty(""); setBatchExpiry(""); setBatchLot(""); setConsumeForm(null); }
+  function openBatchForm(id) { setBatchForm(id); setBatchQty(""); setBatchSize(1); setBatchExpiry(""); setBatchLot(""); setConsumeForm(null); }
   function submitBatchForm(id) {
     const qty = Number(batchQty);
     if (!qty || qty <= 0) return;
-    addBatch(id, qty, batchExpiry || null, batchLot);
+    addBatch(id, qty, batchExpiry || null, batchLot, batchSize);
     setBatchForm(null);
   }
 
@@ -3019,10 +3249,12 @@ function MaterialTab({ data, materialImages, addBatch, consumeQty, deleteBatch, 
                 <div className="mat-name-block">
                   <div className="mat-name">{mat.name}</div>
                   {mat.refNr ? <div className="mat-ref">Ref.: {mat.refNr}</div> : null}
+                  {mat.liquid && materialBagSummary(mat) ? <div className="mat-ref mat-bags">{materialBagSummary(mat)}</div> : null}
                 </div>
                 {mat.usage ? <div className="mat-usage-badge">{USAGE_LABELS[mat.usage]}</div> : null}
+                {openOrderFor(data, mat.id) && <div className="order-tag" title={"Bestellt am " + pdfDate(openOrderFor(data, mat.id).orderedOn)}>Bestellt</div>}
                 <div className={`mat-qty-badge ${qtyBadgeClass}`}>
-                  {status.total}{mat.minQty > 0 ? ` / ${mat.minQty}` : ""} Stk.
+                  {status.total}{mat.minQty > 0 ? ` / ${mat.minQty}` : ""} {materialUnit(mat)}
                 </div>
                 <div className={`mat-expiry-badge ${expiryBadgeClass}`}>
                   {status.soonest ? `MHD ${status.soonest}` : "kein MHD hinterlegt"}
@@ -3084,7 +3316,7 @@ function MaterialTab({ data, materialImages, addBatch, consumeQty, deleteBatch, 
                           const cls = du !== null && du < 0 ? "mat-batch-expired" : du !== null && du <= EXPIRY_WARNING_DAYS ? "mat-batch-soon" : "";
                           return (
                             <tr key={b.id} className={cls}>
-                              <td>{b.qty}</td>
+                              <td>{mat.liquid ? `${b.qty} × ${batchSizeL(b)} l = ${batchLiters(mat, b)} l` : b.qty}</td>
                               <td>{b.expiry || "–"}</td>
                               <td>{b.lot || "–"}</td>
                               <td><button className="mini-btn" onClick={() => deleteBatch(mat.id, b.id)}>✕</button></td>
@@ -3099,7 +3331,7 @@ function MaterialTab({ data, materialImages, addBatch, consumeQty, deleteBatch, 
                     <button className="btn btn-ghost" onClick={() => openBatchForm(mat.id)}>+ Charge</button>
                     <button className="btn btn-ghost" onClick={() => openConsumeForm(mat.id)}>− Verbrauch</button>
                     <span className="mat-min-edit">
-                      Mindestmenge:
+                      {mat.liquid ? "Mindestmenge (Liter):" : "Mindestmenge:"}
                       <NumberStepper
                         min={0}
                         value={String(mat.minQty)}
@@ -3116,7 +3348,16 @@ function MaterialTab({ data, materialImages, addBatch, consumeQty, deleteBatch, 
 
                   {batchForm === mat.id && (
                     <div className="inline-form">
-                      <NumberStepper min={1} placeholder="Menge" value={batchQty} onChange={setBatchQty} />
+                      {mat.liquid && (
+                        <span className="liquid-size-picker">
+                          <span className="field-label">Beutelgröße:</span>
+                          {LIQUID_SIZES.map((sz) => (
+                            <button key={sz} type="button" className={`usage-btn ${batchSize === sz ? "usage-btn-active" : ""}`} onClick={() => setBatchSize(sz)}>{sz} l</button>
+                          ))}
+                        </span>
+                      )}
+                      <NumberStepper min={1} placeholder={mat.liquid ? "Anzahl Beutel" : "Menge"} value={batchQty} onChange={setBatchQty} />
+                      {mat.liquid && Number(batchQty) > 0 && <span className="liquid-sum">= {Number(batchQty) * batchSize} l</span>}
                       <input className="text-input" type="date" value={batchExpiry} onChange={(e) => setBatchExpiry(e.target.value)} />
                       <input className="text-input" placeholder="LOT (optional)" value={batchLot} onChange={(e) => setBatchLot(e.target.value)} />
                       <button className="btn btn-primary" onClick={() => submitBatchForm(mat.id)}>Speichern</button>
@@ -3125,7 +3366,7 @@ function MaterialTab({ data, materialImages, addBatch, consumeQty, deleteBatch, 
                   )}
                   {consumeForm === mat.id && (
                     <div className="inline-form">
-                      <NumberStepper min={1} placeholder="Verbrauchte Menge" value={consumeQtyInput} onChange={setConsumeQtyInput} />
+                      <NumberStepper min={1} placeholder={mat.liquid ? "Verbrauchte Liter" : "Verbrauchte Menge"} value={consumeQtyInput} onChange={setConsumeQtyInput} />
                       <button className="btn btn-primary" onClick={() => submitConsumeForm(mat.id)}>Abbuchen</button>
                       <button className="btn btn-ghost" onClick={() => setConsumeForm(null)}>Abbrechen</button>
                     </div>
@@ -3135,6 +3376,193 @@ function MaterialTab({ data, materialImages, addBatch, consumeQty, deleteBatch, 
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Tab: Materialbestellungen verwalten ---------- */
+
+function OrdersTab({ data, addOrder, closeOrder, reopenOrder, deleteOrder }) {
+  const [formFor, setFormFor] = useState(null); // materialId oder "__manual__"
+  const [fMaterial, setFMaterial] = useState("");
+  const [fQty, setFQty] = useState("");
+  const [fDate, setFDate] = useState(todayStr());
+  const [fBy, setFBy] = useState("");
+  const [fNote, setFNote] = useState("");
+  const [showHistory, setShowHistory] = useState(false);
+
+  const orders = data.orders || [];
+  const matById = (id) => data.materials.find((m) => m.id === id);
+  const openOrders = orders
+    .filter((o) => !o.receivedOn && matById(o.materialId))
+    .sort((a, b) => (b.orderedOn || "").localeCompare(a.orderedOn || ""));
+  const orderedIds = new Set(openOrders.map((o) => o.materialId));
+  const toOrder = data.materials
+    .map((m) => ({ mat: m, status: materialStatus(m) }))
+    .filter((r) => r.status.understock && !orderedIds.has(r.mat.id))
+    .sort((a, b) => a.mat.name.localeCompare(b.mat.name, "de"));
+  const history = orders
+    .filter((o) => o.receivedOn && matById(o.materialId))
+    .sort((a, b) => (b.receivedOn || "").localeCompare(a.receivedOn || ""))
+    .slice(0, 30);
+  const personName = (id) => { const m = id ? data.members.find((x) => x.id === id) : null; return m ? m.name : ""; };
+
+  function openForm(materialId, suggestedQty) {
+    setFormFor(materialId);
+    setFMaterial(materialId === "__manual__" ? "" : materialId);
+    setFQty(suggestedQty > 0 ? String(suggestedQty) : "");
+    setFDate(todayStr());
+    setFBy("");
+    setFNote("");
+  }
+  function submitForm() {
+    const materialId = formFor === "__manual__" ? fMaterial : formFor;
+    const qty = Number(fQty);
+    if (!materialId || !qty || qty <= 0) return;
+    addOrder(materialId, qty, fDate || todayStr(), fBy, fNote.trim());
+    setFormFor(null);
+  }
+
+  function renderForm(mat) {
+    const manual = formFor === "__manual__";
+    const unitMat = manual ? matById(fMaterial) : mat;
+    return (
+      <div className="order-form">
+        {manual && (
+          <select className="select" value={fMaterial} onChange={(e) => setFMaterial(e.target.value)}>
+            <option value="">– Artikel wählen –</option>
+            {[...data.materials].sort((a, b) => a.name.localeCompare(b.name, "de")).map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+          </select>
+        )}
+        <span className="field-label">Menge{unitMat ? ` (${unitMat.liquid ? "Liter" : "Stück"})` : ""}:</span>
+        <NumberStepper min={1} placeholder="Menge" value={fQty} onChange={setFQty} />
+        <span className="field-label">Bestellt am:</span>
+        <input className="text-input" type="date" value={fDate} onChange={(e) => setFDate(e.target.value)} />
+        <select className="select" value={fBy} onChange={(e) => setFBy(e.target.value)}>
+          <option value="">Bestellt von (optional)</option>
+          {data.members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+        </select>
+        <input className="text-input" placeholder="Notiz (optional), z. B. Lieferant oder Bestellnummer" value={fNote} onChange={(e) => setFNote(e.target.value)} style={{ flex: "1 1 220px" }} />
+        <button className="btn btn-primary" onClick={submitForm}>Bestellung speichern</button>
+        <button className="btn btn-ghost" onClick={() => setFormFor(null)}>Abbrechen</button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="tab-content">
+      <p className="hint-text">
+        Hier stehen die Artikel, die unter die Mindestmenge gefallen sind. Eine dokumentierte Bestellung erscheint im Reiter „Material“ mit dem Tag „Bestellt“. Ist die Ware da, wird die Bestellung als geliefert abgeschlossen und die Charge im Reiter „Material“ erfasst.
+      </p>
+
+      <div className="alle-panel">
+        <h3 className="alle-title">Zu bestellen {toOrder.length > 0 && <span className="alle-count alle-count-bad">{toOrder.length}</span>}</h3>
+        {toOrder.length === 0 ? (
+          <div className="alle-ok">✓ Nichts zu bestellen – alle Bestände über der Mindestmenge oder bereits bestellt.</div>
+        ) : (
+          <div className="alle-list">
+            {toOrder.map(({ mat, status }) => {
+              const missing = mat.minQty - status.total;
+              return (
+                <div key={mat.id} className="order-block">
+                  <div className="order-head">
+                    <div className="alle-item-main">
+                      <div className="alle-item-name">{mat.name}</div>
+                      <div className="alle-item-sub">
+                        {mat.refNr ? `Ref.: ${mat.refNr}` : "keine Ref.-Nr."}{mat.liquid && materialBagSummary(mat) ? ` · ${materialBagSummary(mat)}` : ""}
+                      </div>
+                    </div>
+                    <div className="order-head-right">
+                      <span className="mat-qty-badge mat-badge-bad">{status.total} / {mat.minQty} {materialUnit(mat)}</span>
+                      <span className="alle-missing">fehlt: {missing} {mat.liquid ? "l" : ""}</span>
+                    </div>
+                  </div>
+                  {formFor === mat.id ? renderForm(mat) : (
+                    <div className="order-actions">
+                      <button className="btn btn-primary" onClick={() => openForm(mat.id, missing)}>Bestellung dokumentieren</button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {formFor === "__manual__" ? renderForm(null) : (
+          <div className="order-actions">
+            <button className="btn btn-ghost" onClick={() => openForm("__manual__", 0)}>+ Anderen Artikel bestellen</button>
+          </div>
+        )}
+      </div>
+
+      <div className="alle-panel">
+        <h3 className="alle-title">Bestellt – Lieferung offen {openOrders.length > 0 && <span className="alle-count alle-count-warn">{openOrders.length}</span>}</h3>
+        {openOrders.length === 0 ? (
+          <p className="hint-text">Keine offenen Bestellungen.</p>
+        ) : (
+          <div className="alle-list">
+            {openOrders.map((o) => {
+              const mat = matById(o.materialId);
+              const st = materialStatus(mat);
+              const by = personName(o.personId);
+              return (
+                <div key={o.id} className="order-block">
+                  <div className="order-head">
+                    <div className="alle-item-main">
+                      <div className="alle-item-name">{mat.name}</div>
+                      <div className="order-meta">
+                        Bestellt am {pdfDate(o.orderedOn)} · Menge: {o.qty} {materialUnit(mat)}{by ? ` · von ${by}` : ""}
+                        {o.note ? <><br />Notiz: {o.note}</> : null}
+                      </div>
+                    </div>
+                    <div className="order-head-right">
+                      <span className="order-tag">Bestellt</span>
+                      <span className="alle-missing">Bestand: {st.total}{mat.minQty > 0 ? ` / ${mat.minQty}` : ""} {materialUnit(mat)}</span>
+                    </div>
+                  </div>
+                  <div className="order-actions">
+                    <button className="btn btn-primary" onClick={() => closeOrder(o.id)}>Geliefert – abschließen</button>
+                    <button className="mini-btn mat-delete" onClick={() => { if (window.confirm(`Bestellung für „${mat.name}" wirklich löschen?`)) deleteOrder(o.id); }}>Löschen</button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <div className="alle-panel">
+        <h3 className="alle-title">
+          Abgeschlossene Bestellungen
+          <button className="mini-btn" onClick={() => setShowHistory((v) => !v)}>{showHistory ? "ausblenden" : `anzeigen (${history.length})`}</button>
+        </h3>
+        {showHistory && (history.length === 0 ? (
+          <p className="hint-text">Noch keine abgeschlossenen Bestellungen.</p>
+        ) : (
+          <div className="alle-list">
+            {history.map((o) => {
+              const mat = matById(o.materialId);
+              const by = personName(o.personId);
+              return (
+                <div key={o.id} className="order-block">
+                  <div className="order-head">
+                    <div className="alle-item-main">
+                      <div className="alle-item-name">{mat.name}</div>
+                      <div className="order-meta">
+                        {o.qty} {materialUnit(mat)} · bestellt am {pdfDate(o.orderedOn)}{by ? ` von ${by}` : ""} · geliefert am {pdfDate(o.receivedOn)}
+                        {o.note ? <><br />Notiz: {o.note}</> : null}
+                      </div>
+                    </div>
+                    <div className="order-actions" style={{ marginTop: 0 }}>
+                      <button className="mini-btn" onClick={() => reopenOrder(o.id)}>wieder öffnen</button>
+                      <button className="mini-btn mat-delete" onClick={() => { if (window.confirm("Eintrag wirklich löschen?")) deleteOrder(o.id); }}>Löschen</button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -3167,8 +3595,8 @@ function EinsatzTab({ data, einsatz, setEinsatzOrgan, setItemQty, markItemsPacke
           {status === "consumed" && <span className="einsatz-status-tag einsatz-status-consumed">verbraucht</span>}
         </label>
         <div className="einsatz-item-meta">
-          <span className={`einsatz-linked ${stock <= 0 ? "einsatz-linked-empty" : ""}`}>Bestand: {stock}</span>
-          <span className="field-label">Menge:</span>
+          <span className={`einsatz-linked ${stock <= 0 ? "einsatz-linked-empty" : ""}`}>Bestand: {stock}{material.liquid ? " l" : ""}</span>
+          <span className="field-label">{material.liquid ? "Menge (Liter):" : "Menge:"}</span>
           <NumberStepper
             min={1}
             className="einsatz-qty-input"
@@ -4096,12 +4524,13 @@ function AlleTab({ data }) {
                 <div className="alle-item-main">
                   <div className="alle-item-name">{mat.name}</div>
                   <div className="alle-item-sub">
-                    {mat.refNr ? `Ref.: ${mat.refNr}` : "keine Ref.-Nr."}{mat.usage ? ` · ${USAGE_LABELS[mat.usage]}` : ""}
+                    {mat.refNr ? `Ref.: ${mat.refNr}` : "keine Ref.-Nr."}{mat.usage ? ` · ${USAGE_LABELS[mat.usage]}` : ""}{mat.liquid && materialBagSummary(mat) ? ` · ${materialBagSummary(mat)}` : ""}
                   </div>
                 </div>
                 <div className="alle-item-qty">
-                  <span className="mat-qty-badge mat-badge-bad">{status.total} / {mat.minQty} Stk.</span>
-                  <span className="alle-missing">fehlt: {mat.minQty - status.total}</span>
+                  {openOrderFor(data, mat.id) && <span className="order-tag">Bestellt am {pdfDate(openOrderFor(data, mat.id).orderedOn)}</span>}
+                  <span className="mat-qty-badge mat-badge-bad">{status.total} / {mat.minQty} {materialUnit(mat)}</span>
+                  <span className="alle-missing">fehlt: {mat.minQty - status.total}{mat.liquid ? " l" : ""}</span>
                 </div>
               </div>
             ))}
@@ -4125,7 +4554,7 @@ function AlleTab({ data }) {
                 <div className="alle-item-main">
                   <div className="alle-item-name">{mat.name}</div>
                   <div className="alle-item-sub">
-                    MHD {formatDateDe(batch.expiry)} · {batch.qty} Stk.{batch.lot ? ` · Charge ${batch.lot}` : ""}
+                    MHD {formatDateDe(batch.expiry)} · {batchLabel(mat, batch)}{batch.lot ? ` · Charge ${batch.lot}` : ""}
                   </div>
                 </div>
                 <div className="alle-item-qty">
